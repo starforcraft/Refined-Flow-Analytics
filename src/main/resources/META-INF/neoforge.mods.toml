@@ -1,45 +1,32 @@
 modLoader="javafml"
 loaderVersion="[4,)"
-license="Not specified"
+license="GPL"
 
 [[mods]]
-modId="gridflow"
+modId="refinedflowanalytics"
 version="0.1.4"
-displayName="GridFlow"
-displayURL="https://mcreator.net"
-credits="Created using mod maker MCreator - https://mcreator.net/about"
-authors="MCreator"
-description = "Addon for Refined Storage. Allows monitoring the Grid's Flow!"
+displayName="Refined Flow Analytics"
+displayURL="https://github.com/starforcraft/Refined-Flow-Analytics"
+authors="Ultramega, XaMi"
+description="Tracks resource production and consumption in Refined Storage networks with live statistics and historical graphs."
 
-# Start of user code block mod configuration
-# End of user code block mod configuration
-
-
-# Start of user code block custom mixins
-# End of user code block custom mixins
-
-[[dependencies.gridflow]]
+[[dependencies.refinedflowanalytics]]
     modId="neoforge"
     type="required"
-    versionRange="[21.1.176,)"
+    versionRange="[21.1.200,)"
     ordering="AFTER"
     side="BOTH"
 
-[[dependencies.gridflow]]
+[[dependencies.refinedflowanalytics]]
     modId="minecraft"
     type="required"
     versionRange="[1.21.1]"
     ordering="AFTER"
     side="BOTH"
 
-[[dependencies.gridflow]]
+[[dependencies.refinedflowanalytics]]
     modId="refinedstorage"
     type="required"
-    versionRange="[2,)"
+    versionRange="[2.0.9,)"
     ordering="NONE"
     side="BOTH"
-
-
-
-# Start of user code block dependencies configuration
-# End of user code block dependencies configuration

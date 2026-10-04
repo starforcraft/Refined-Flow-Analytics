@@ -3,24 +3,27 @@ plugins {
     id 'net.neoforged.moddev' version '2.0.95'
 }
 
+repositories {
+    maven {
+        name = "Refined Storage"
+        url = uri("https://maven.creeperhost.net")
+        content {
+            includeGroup("com.refinedmods.refinedstorage")
+        }
+    }
+}
+
 version = '0.1.4'
-base.archivesName = "gridflow"
+base.archivesName = "refinedflowanalytics"
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 neoForge {
-    version = "21.1.209"
+    version = "21.1.255"
 
     runs {
         client {
             client()
-
-            def mcreatorJvmOptions = System.getenv('MCREATOR_JVM_OPTIONS')
-            if (mcreatorJvmOptions) {
-                mcreatorJvmOptions.split("\\s+").findAll { it.trim() }.each { arg ->
-                    jvmArgument(arg)
-                }
-            }
         }
         server {
             server()
@@ -33,26 +36,16 @@ neoForge {
     }
 
     mods {
-        mcreator {
+        refinedflowanalytics {
             sourceSet sourceSets.main
         }
     }
 }
-repositories {
-    maven {
-        url = uri("https://maven.pkg.github.com/refinedmods/refinedstorage2")
-        credentials {
-            username = "anything"
-            password = "\u0067hp_oGjcDFCn8jeTzIj4Ke9pLoEVtpnZMP4VQgaX"
-        }
-    }
-}
+
 dependencies {
     api "com.refinedmods.refinedstorage:refinedstorage-neoforge:${refinedstorage_version}"
 }
 
 tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+    options.encoding = 'UTF-8'
 }
-
-apply from: 'mcreator.gradle'

@@ -1,0 +1,13 @@
+{
+  "parent": "refinedstorage:block/north_cutout",
+  "textures": {
+    "cutout": "refinedflowanalytics:block/flow_scope/cutouts/inactive",
+    "down": "refinedflowanalytics:block/bottom",
+    "up": "refinedflowanalytics:block/top",
+    "north": "refinedflowanalytics:block/front",
+    "east": "refinedflowanalytics:block/left",
+    "south": "refinedflowanalytics:block/back",
+    "west": "refinedflowanalytics:block/right",
+    "particle": "refinedflowanalytics:block/bottom"
+  }
+}

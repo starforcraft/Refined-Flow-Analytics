@@ -7,12 +7,18 @@ import com.ultramega.refinedflowanalytics.registry.ModBlocks;
 import com.ultramega.refinedflowanalytics.registry.ModItems;
 import com.ultramega.refinedflowanalytics.registry.ModMenus;
 
+import com.refinedmods.refinedstorage.common.content.RegistryCallback;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Supplier;
 
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Tuple;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.Block;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
@@ -21,6 +27,7 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.MOD_ID;
 
@@ -28,13 +35,13 @@ import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdenti
 public class RefinedFlowAnalyticsMod {
     private static final Collection<Tuple<Runnable, Integer>> WORK_QUEUE = new ConcurrentLinkedQueue<>();
 
+    // TODO: make multiloader-project
     public RefinedFlowAnalyticsMod(final IEventBus modEventBus) {
         NeoForge.EVENT_BUS.register(this);
         modEventBus.addListener(this::registerNetworking);
 
-        ModBlocks.REGISTRY.register(modEventBus);
+        this.registerBlocksAndItems(modEventBus);
         ModBlockEntities.REGISTRY.register(modEventBus);
-        ModItems.REGISTRY.register(modEventBus);
         CreativeModeTabItems.REGISTRY.register(modEventBus);
         ModMenus.REGISTRY.register(modEventBus);
     }
@@ -43,6 +50,27 @@ public class RefinedFlowAnalyticsMod {
         if (Thread.currentThread().getThreadGroup() == SidedThreadGroups.SERVER) {
             WORK_QUEUE.add(new Tuple<>(action, tick));
         }
+    }
+
+    private void registerBlocksAndItems(final IEventBus modEventBus) {
+        final DeferredRegister.Blocks blocks = DeferredRegister.createBlocks(MOD_ID);
+        final DeferredRegister.Items items = DeferredRegister.createItems(MOD_ID);
+
+        ModBlocks.INSTANCE.getFlowScope().registerBlocks(new RegistryCallback<Block>() {
+            @Override
+            public <R extends Block> Supplier<R> register(final ResourceLocation id, final Supplier<R> factory) {
+                return blocks.register(id.getPath(), factory);
+            }
+        });
+        ModBlocks.INSTANCE.getFlowScope().registerItems(new RegistryCallback<Item>() {
+            @Override
+            public <R extends Item> Supplier<R> register(final ResourceLocation id, final Supplier<R> factory) {
+                return items.register(id.getPath(), factory);
+            }
+        }, ModItems.INSTANCE::addFlowScope);
+
+        blocks.register(modEventBus);
+        items.register(modEventBus);
     }
 
     private void registerNetworking(final RegisterPayloadHandlersEvent event) {

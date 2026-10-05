@@ -21,7 +21,7 @@ public class ModBlockEntities {
 
     public static final Supplier<BlockEntityType<FlowScopeBlockEntity>> FLOW_SCOPE = REGISTRY.register("flow_scope", () -> BlockEntityType.Builder.of(
         FlowScopeBlockEntity::new,
-        ModBlocks.FLOW_SCOPE.get()
+        ModBlocks.INSTANCE.getFlowScope().toArray()
     ).build(null));
 
     private ModBlockEntities() {

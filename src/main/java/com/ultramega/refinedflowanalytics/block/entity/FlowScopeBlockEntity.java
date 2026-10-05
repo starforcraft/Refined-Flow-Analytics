@@ -1,6 +1,7 @@
 package com.ultramega.refinedflowanalytics.block.entity;
 
 import com.ultramega.refinedflowanalytics.api.FlowScopeStorageListener;
+import com.ultramega.refinedflowanalytics.container.FlowScopeContainerMenu;
 import com.ultramega.refinedflowanalytics.data.FlowSnapshotData;
 import com.ultramega.refinedflowanalytics.registry.ModBlockEntities;
 import com.ultramega.refinedflowanalytics.resource.ResourceChangeGranularityKey;
@@ -13,6 +14,7 @@ import com.refinedmods.refinedstorage.api.network.storage.StorageNetworkComponen
 import com.refinedmods.refinedstorage.common.api.RefinedStorageApi;
 import com.refinedmods.refinedstorage.common.api.support.network.InWorldNetworkNodeContainer;
 import com.refinedmods.refinedstorage.common.api.support.resource.PlatformResourceKey;
+import com.refinedmods.refinedstorage.common.support.containermenu.ExtendedMenuProvider;
 import com.refinedmods.refinedstorage.common.support.network.AbstractBaseNetworkNodeContainerBlockEntity;
 import com.refinedmods.refinedstorage.common.support.network.SimpleConnectionStrategy;
 import com.refinedmods.refinedstorage.common.util.PlatformUtil;
@@ -24,12 +26,19 @@ import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.codec.StreamEncoder;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.block.state.BlockState;
 
-public class FlowScopeBlockEntity extends AbstractBaseNetworkNodeContainerBlockEntity<FlowScopeBlockEntity.FlowScopeNetworkNode> {
+import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsTranslation;
+
+public class FlowScopeBlockEntity extends AbstractBaseNetworkNodeContainerBlockEntity<FlowScopeBlockEntity.FlowScopeNetworkNode> implements ExtendedMenuProvider<BlockPos> {
     private static final String FACTORY_ID_TAG = "FactoryId";
 
     public int tagFactoryId;
@@ -49,11 +58,6 @@ public class FlowScopeBlockEntity extends AbstractBaseNetworkNodeContainerBlockE
             this.snapshotData = FlowSnapshotData.get((ServerLevel) this.getLevel(), this.tagFactoryId);
             this.saveScheduler = new TickScheduler(this.snapshotData.dataGranularity);
         }
-    }
-
-    @Override
-    public Component getName() {
-        return Component.literal("Flow Scope");
     }
 
     @Override
@@ -104,11 +108,13 @@ public class FlowScopeBlockEntity extends AbstractBaseNetworkNodeContainerBlockE
 
     @Override
     public void saveAdditional(final CompoundTag tag, final HolderLookup.Provider provider) {
+        super.saveAdditional(tag, provider);
         tag.putInt(FACTORY_ID_TAG, this.tagFactoryId);
     }
 
     @Override
     public void loadAdditional(final CompoundTag tag, final HolderLookup.Provider provider) {
+        super.loadAdditional(tag, provider);
         if (tag.contains(FACTORY_ID_TAG)) {
             this.tagFactoryId = tag.getInt(FACTORY_ID_TAG);
         }
@@ -126,6 +132,26 @@ public class FlowScopeBlockEntity extends AbstractBaseNetworkNodeContainerBlockE
     @Override
     public CompoundTag getUpdateTag(final HolderLookup.Provider lookupProvider) {
         return this.saveWithFullMetadata(lookupProvider);
+    }
+
+    @Override
+    public BlockPos getMenuData() {
+        return this.worldPosition;
+    }
+
+    @Override
+    public StreamEncoder<RegistryFriendlyByteBuf, BlockPos> getMenuCodec() {
+        return (buffer, pos) -> buffer.writeBlockPos(pos);
+    }
+
+    @Override
+    public Component getName() {
+        return createFlowAnalyticsTranslation("block", "flow_scope");
+    }
+
+    @Override
+    public AbstractContainerMenu createMenu(final int id, final Inventory inventory, final Player player) {
+        return new FlowScopeContainerMenu(id, inventory, this.worldPosition);
     }
 
     public static class FlowScopeNetworkNode extends SimpleNetworkNode {

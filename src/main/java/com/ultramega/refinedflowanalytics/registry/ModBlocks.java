@@ -2,17 +2,29 @@ package com.ultramega.refinedflowanalytics.registry;
 
 import com.ultramega.refinedflowanalytics.block.FlowScopeBlock;
 
-import net.minecraft.world.level.block.Block;
-import net.neoforged.neoforge.registries.DeferredBlock;
-import net.neoforged.neoforge.registries.DeferredRegister;
+import com.refinedmods.refinedstorage.common.content.BlockColorMap;
+import com.refinedmods.refinedstorage.common.support.BaseBlockItem;
 
-import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.MOD_ID;
+import net.minecraft.world.item.DyeColor;
 
-public class ModBlocks {
-    public static final DeferredRegister.Blocks REGISTRY = DeferredRegister.createBlocks(MOD_ID);
+import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsIdentifier;
+import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsTranslation;
 
-    public static final DeferredBlock<Block> FLOW_SCOPE = REGISTRY.register("flow_scope", FlowScopeBlock::new);
+public final class ModBlocks {
+    public static final DyeColor COLOR = DyeColor.LIGHT_BLUE;
+    public static final ModBlocks INSTANCE = new ModBlocks();
+
+    private final BlockColorMap<FlowScopeBlock, BaseBlockItem> flowScope = new BlockColorMap<>(
+        FlowScopeBlock::new,
+        createFlowAnalyticsIdentifier("flow_scope"),
+        createFlowAnalyticsTranslation("block", "flow_scope"),
+        COLOR
+    );
 
     private ModBlocks() {
+    }
+
+    public BlockColorMap<FlowScopeBlock, BaseBlockItem> getFlowScope() {
+        return this.flowScope;
     }
 }

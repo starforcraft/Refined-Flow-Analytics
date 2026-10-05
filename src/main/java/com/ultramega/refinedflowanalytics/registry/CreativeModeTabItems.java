@@ -16,9 +16,9 @@ public final class CreativeModeTabItems {
         "refined_flow_analytics",
         () -> CreativeModeTab.builder()
             .title(createFlowAnalyticsTranslation("item_group", "refined_flow_analytics"))
-            .icon(() -> new ItemStack(ModBlocks.FLOW_SCOPE.get()))
-            .displayItems((parameters, tabData) -> {
-                tabData.accept(ModBlocks.FLOW_SCOPE.get().asItem());
+            .icon(() -> new ItemStack(ModBlocks.INSTANCE.getFlowScope().getDefault()))
+            .displayItems((parameters, output) -> {
+                ModItems.INSTANCE.getFlowScopes().forEach(item -> output.accept(item.get()));
             })
             .build()
     );

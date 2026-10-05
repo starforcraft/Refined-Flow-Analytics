@@ -125,7 +125,7 @@ public class FlowScopeGraph {
         this.loading = false;
     }
 
-    public void drawLine(final GuiGraphics guiGraphics,
+    public void drawLine(final GuiGraphics graphics,
                          final double x1,
                          final double y1,
                          final double x2,
@@ -137,7 +137,7 @@ public class FlowScopeGraph {
         if (lineStyle == LineStyle.BLOCKY) {
             final Vector2d p1 = new Vector2d(x1, Math.ceil(y1 / MINECRAFT_STYLE_VERTICAL_RESOLUTION) * MINECRAFT_STYLE_VERTICAL_RESOLUTION);
             final Vector2d p2 = new Vector2d(x2, Math.floor(y2 / MINECRAFT_STYLE_VERTICAL_RESOLUTION) * MINECRAFT_STYLE_VERTICAL_RESOLUTION);
-            guiGraphics.fill((int) p1.x, (int) p1.y, (int) p2.x, (int) (p2.y == p1.y ? p2.y + MINECRAFT_STYLE_VERTICAL_RESOLUTION : p2.y), color);
+            graphics.fill((int) p1.x, (int) p1.y, (int) p2.x, (int) (p2.y == p1.y ? p2.y + MINECRAFT_STYLE_VERTICAL_RESOLUTION : p2.y), color);
         } else if (lineStyle == LineStyle.EXACT) {
             final double ht = thickness / 2f;
             final double rads = Math.atan2(y2 - y1, x2 - x1);
@@ -148,18 +148,18 @@ public class FlowScopeGraph {
                 new Vector2d((float) (x1 - tx), (float) (y1 - ty)),
                 new Vector2d((float) (x2 - tx), (float) (y2 - ty)),
                 new Vector2d((float) (x2 + tx), (float) (y2 + ty)));
-            final Matrix4f matrix4f = guiGraphics.pose().last().pose();
-            final VertexConsumer vc = guiGraphics.bufferSource().getBuffer(RenderType.gui());
+            final Matrix4f matrix4f = graphics.pose().last().pose();
+            final VertexConsumer vc = graphics.bufferSource().getBuffer(RenderType.gui());
             points.forEach(p -> vc.addVertex(matrix4f, (float) p.x, (float) p.y, 0f).setColor(color));
-            guiGraphics.flush();
+            graphics.flush();
 
             // debug
-            // guiGraphics.fill((int) (x1 - ht + 1), (int) (y1 - ht + 1), (int) (x1 + ht -
+            // graphics.fill((int) (x1 - ht + 1), (int) (y1 - ht + 1), (int) (x1 + ht -
             // 1), (int) (y1 + ht - 1), color);
         }
     }
 
-    public void drawGradientBg(final GuiGraphics guiGraphics, final List<Vector2d> points, final int baseColor, final int targetColor) {
+    public void drawGradientBg(final GuiGraphics graphics, final List<Vector2d> points, final int baseColor, final int targetColor) {
         final int baseR = ((baseColor & 0xff0000) >> 16);
         final int baseG = ((baseColor & 0x00ff00) >> 8);
         final int baseB = baseColor & 0x0000ff;
@@ -180,23 +180,23 @@ public class FlowScopeGraph {
                 + (0x000100 * Math.round((i * 1f / maxIdx) * targetG))
                 + (Math.round((i * 1f / maxIdx) * targetB)));
 
-            final Matrix4f matrix4f = guiGraphics.pose().last().pose();
-            final VertexConsumer vc = guiGraphics.bufferSource().getBuffer(RenderType.gui());
+            final Matrix4f matrix4f = graphics.pose().last().pose();
+            final VertexConsumer vc = graphics.bufferSource().getBuffer(RenderType.gui());
             vc.addVertex(matrix4f, (float) b.x, (float) b.y, 0f).setColor(color);
             vc.addVertex(matrix4f, (float) a.x, (float) a.y, 0f).setColor(prevColor);
             vc.addVertex(matrix4f, (float) a.x, (float) this.bottom, 0f).setColor(prevColor);
             vc.addVertex(matrix4f, (float) b.x, (float) this.bottom, 0f).setColor(color);
-            guiGraphics.flush();
+            graphics.flush();
         });
     }
 
-    public void drawGraph(final GuiGraphics guiGraphics, final List<Vector2d> points, final int thickness, final int color) {
+    public void drawGraph(final GuiGraphics graphics, final List<Vector2d> points, final int thickness, final int color) {
         this.getPairStream(points)
-            .forEach(p -> this.drawLine(guiGraphics, p.prev.x, p.prev.y, p.cur.x, p.cur.y, color, thickness, this.lineStyle));
+            .forEach(p -> this.drawLine(graphics, p.prev.x, p.prev.y, p.cur.x, p.cur.y, color, thickness, this.lineStyle));
     }
 
-    public void drawGraph(final GuiGraphics guiGraphics, final long[] arr, final int thickness, final int color) {
-        this.drawGraph(guiGraphics, this.getGuiXYArrayD(arr), thickness, color);
+    public void drawGraph(final GuiGraphics graphics, final long[] arr, final int thickness, final int color) {
+        this.drawGraph(graphics, this.getGuiXYArrayD(arr), thickness, color);
     }
 
     public void drawGraphs(final GuiGraphics graphics) {
@@ -215,8 +215,8 @@ public class FlowScopeGraph {
         return this.getResourceRendering().getDisplayName(this.itemKey);
     }
 
-    public void renderItem(final GuiGraphics guiGraphics, final int x, final int y) {
-        this.getResourceRendering().render(this.itemKey, guiGraphics, x, y);
+    public void renderItem(final GuiGraphics graphics, final int x, final int y) {
+        this.getResourceRendering().render(this.itemKey, graphics, x, y);
     }
 
     public Vector2i getGuiXYFromGraphValue(final Integer index, final Long value) {
@@ -294,7 +294,7 @@ public class FlowScopeGraph {
         return false;
     }
 
-    public void renderTooltip(final GuiGraphics guiGraphics, final int mouseX, final int mouseY) {
+    public void renderTooltip(final GuiGraphics graphics, final int mouseX, final int mouseY) {
         if (!this.isInBounds(mouseX, mouseY) && (this.selectedIndex == -1)) {
             return;
         }
@@ -308,7 +308,7 @@ public class FlowScopeGraph {
 
         final int selectionX1 = this.getGuiXYFromGraphValue(indexFrom, 0L).x;
         final int selectionX2 = this.getGuiXYFromGraphValue(indexTo, 0L).x;
-        guiGraphics.fill(selectionX1, this.bottom, selectionX2, this.bottom - HEIGHT, 250, 0x66ffffff);
+        graphics.fill(selectionX1, this.bottom, selectionX2, this.bottom - HEIGHT, 250, 0x66ffffff);
 
         final LocalDateTime indexDate = this.dataTimeStamp.minus(this.pointsAmount - indexFrom, this.granularity.getChronoUnit());
         final LocalDateTime nextIndexDate = this.dataTimeStamp.minus(this.pointsAmount - (indexTo), this.granularity.getChronoUnit());
@@ -331,7 +331,7 @@ public class FlowScopeGraph {
             Component.literal(String.format("Outflow: -%,d", decvalue)).withColor(0xffff0000)));
         lines.add(new SmallTextClientTooltipComponent(
             Component.literal(String.format("Netflow: %,d", incvalue - decvalue)).withColor(0xff66ddff)));
-        Platform.INSTANCE.renderTooltip(guiGraphics, lines, mouseX, mouseY);
+        Platform.INSTANCE.renderTooltip(graphics, lines, mouseX, mouseY);
     }
 
     private Stream<PointPair> getPairStream(final List<Vector2d> points) {

@@ -2,7 +2,7 @@ package com.ultramega.refinedflowanalytics.service;
 
 import com.ultramega.refinedflowanalytics.RefinedFlowAnalyticsMod;
 import com.ultramega.refinedflowanalytics.block.entity.FlowScopeBlockEntity;
-import com.ultramega.refinedflowanalytics.container.FlowScopeMenu;
+import com.ultramega.refinedflowanalytics.container.FlowScopeContainerMenu;
 import com.ultramega.refinedflowanalytics.resource.ResourceChangeGranularityKey;
 import com.ultramega.refinedflowanalytics.resource.ResourceChangeKey;
 
@@ -35,7 +35,7 @@ public class SnapshotService {
                     itemChange.put((short) +1, snapshotMap.getOrDefault(new ResourceChangeKey(resourceKey, (short) +1), 0L));
                     itemChange.put((short) -1, Math.abs(snapshotMap.getOrDefault(new ResourceChangeKey(resourceKey, (short) -1), 0L)));
                 }
-                if (entity instanceof Player player && player.containerMenu instanceof FlowScopeMenu menu) {
+                if (entity instanceof Player player && player.containerMenu instanceof FlowScopeContainerMenu menu) {
                     menu.sendMenuStateUpdate(player, 2, "lastSnapshot", data, true);
                 }
             }
@@ -53,7 +53,7 @@ public class SnapshotService {
             final BlockEntity blockEntity = (world.getBlockEntity(BlockPos.containing(x, y, z)));
             if (blockEntity instanceof FlowScopeBlockEntity flowScope && flowScope.isActive()) {
                 final Map<ResourceChangeGranularityKey, long[]> data = flowScope.getDetailedSnapshot(itemKey, granularity);
-                if (entity instanceof Player player && player.containerMenu instanceof FlowScopeMenu menu) {
+                if (entity instanceof Player player && player.containerMenu instanceof FlowScopeContainerMenu menu) {
                     menu.sendMenuStateUpdate(player, 3, "detailedFactoryGeneration", data, true);
                 }
             }

@@ -1,0 +1,10 @@
+{
+  "type": "refinedstorage:recoloring",
+  "dye": {
+    "tag": "c:dyes/orange"
+  },
+  "ingredient": {
+    "tag": "refinedflowanalytics:flow_scopes"
+  },
+  "result": "refinedflowanalytics:orange_flow_scope"
+}

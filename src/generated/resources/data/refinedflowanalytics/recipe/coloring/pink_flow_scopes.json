@@ -1,0 +1,10 @@
+{
+  "type": "refinedstorage:recoloring",
+  "dye": {
+    "tag": "c:dyes/pink"
+  },
+  "ingredient": {
+    "tag": "refinedflowanalytics:flow_scopes"
+  },
+  "result": "refinedflowanalytics:pink_flow_scope"
+}

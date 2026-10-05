@@ -1,0 +1,62 @@
+package com.ultramega.refinedflowanalytics.datagen;
+
+import com.ultramega.refinedflowanalytics.datagen.loot.LootTableProviderImpl;
+import com.ultramega.refinedflowanalytics.datagen.recipe.MainRecipeProvider;
+
+import java.util.concurrent.CompletableFuture;
+
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderLookup.Provider;
+import net.minecraft.data.DataGenerator;
+import net.minecraft.data.DataGenerator.PackGenerator;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.common.data.ExistingFileHelper;
+import net.neoforged.neoforge.data.event.GatherDataEvent;
+
+import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.MOD_ID;
+
+@EventBusSubscriber(modid = MOD_ID)
+public final class DataGenerators {
+    private DataGenerators() {
+    }
+
+    @SubscribeEvent
+    public static void onGatherData(final GatherDataEvent e) {
+        registerBlockModelProviders(e.getGenerator(), e.getExistingFileHelper());
+        registerBlockStateProviders(e.getGenerator(), e.getExistingFileHelper());
+        registerItemModelProviders(e.getGenerator(), e.getExistingFileHelper());
+        registerRecipeProviders(e.getGenerator(), e.getLookupProvider());
+        registerLootTableProviders(e.getGenerator(), e.getLookupProvider());
+    }
+
+    private static void registerBlockStateProviders(final DataGenerator generator,
+                                                    final ExistingFileHelper existingFileHelper) {
+        final PackGenerator mainPack = generator.getVanillaPack(true);
+        mainPack.addProvider(output -> new BlockStateProviderImpl(output, existingFileHelper));
+    }
+
+    private static void registerBlockModelProviders(final DataGenerator generator,
+                                                    final ExistingFileHelper existingFileHelper) {
+        final PackGenerator mainPack = generator.getVanillaPack(true);
+        mainPack.addProvider(output -> new BlockModelProviderImpl(output, existingFileHelper));
+    }
+
+    private static void registerItemModelProviders(final DataGenerator generator,
+                                                   final ExistingFileHelper existingFileHelper) {
+        final PackGenerator mainPack = generator.getVanillaPack(true);
+        mainPack.addProvider(output -> new ItemModelProviderImpl(output, existingFileHelper));
+    }
+
+    private static void registerLootTableProviders(final DataGenerator generator,
+                                                   final CompletableFuture<Provider> provider) {
+        final PackGenerator mainPack = generator.getVanillaPack(true);
+        mainPack.addProvider(output -> new LootTableProviderImpl(output, provider));
+    }
+
+    private static void registerRecipeProviders(final DataGenerator generator,
+                                                final CompletableFuture<HolderLookup.Provider> provider) {
+        final PackGenerator mainPack = generator.getVanillaPack(true);
+        mainPack.addProvider(output -> new MainRecipeProvider(output, provider));
+    }
+}

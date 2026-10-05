@@ -1,7 +1,6 @@
 package com.ultramega.refinedflowanalytics.screen;
 
-import com.ultramega.refinedflowanalytics.block.FlowScopeBlock;
-import com.ultramega.refinedflowanalytics.container.FlowScopeMenu;
+import com.ultramega.refinedflowanalytics.container.FlowScopeContainerMenu;
 import com.ultramega.refinedflowanalytics.resource.ResourceChangeGranularityKey;
 import com.ultramega.refinedflowanalytics.screen.components.DynamicButton;
 import com.ultramega.refinedflowanalytics.screen.components.FlowScopeGraph;
@@ -50,9 +49,9 @@ import org.lwjgl.glfw.GLFW;
 
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsIdentifier;
 
-public class FlowScopeScreen extends AbstractContainerScreen<FlowScopeMenu> {
-    private static final ResourceLocation SCOPE_DETAIL = createFlowAnalyticsIdentifier("textures/screens/flow_scope_detail");
-    private static final ResourceLocation SCOPE = createFlowAnalyticsIdentifier("textures/screens/flow_scope");
+public class FlowScopeScreen extends AbstractContainerScreen<FlowScopeContainerMenu> {
+    private static final ResourceLocation SCOPE_DETAIL = createFlowAnalyticsIdentifier("textures/gui/flow_scope_detail.png");
+    private static final ResourceLocation SCOPE = createFlowAnalyticsIdentifier("textures/gui/flow_scope.png");
 
     private static final int PRODUCTION_GREEN = 0xff00ff00;
     private static final int CONSUMPTION_RED = 0xffff0000;
@@ -87,7 +86,7 @@ public class FlowScopeScreen extends AbstractContainerScreen<FlowScopeMenu> {
     private SortingType sortingType = SortingType.QUANTITY;
     private SortingDirection sortingDirection = SortingDirection.DESCENDING;
 
-    private Button buttonDone;
+    private Button doneButton;
     @Nullable
     private ScrollbarWidget scrollbar;
     private SearchFieldWidget searchField;
@@ -98,7 +97,7 @@ public class FlowScopeScreen extends AbstractContainerScreen<FlowScopeMenu> {
 
     private boolean hasDetailedGenerationData = false;
 
-    public FlowScopeScreen(final FlowScopeMenu container, final Inventory inventory, final Component text) {
+    public FlowScopeScreen(final FlowScopeContainerMenu container, final Inventory inventory, final Component text) {
         super(container, inventory, text);
         this.world = container.world;
         this.x = container.getX();
@@ -116,18 +115,15 @@ public class FlowScopeScreen extends AbstractContainerScreen<FlowScopeMenu> {
         );
     }
 
-    private void renderDetailedGenerationStats(final GuiGraphics guiGraphics, final int mouseX, final int mouseY) {
+    private void renderDetailedGenerationStats(final GuiGraphics graphics, final int mouseX, final int mouseY) {
         RenderSystem.defaultBlendFunc();
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(0, 0, 200);
+        graphics.pose().pushPose();
+        graphics.pose().translate(0, 0, 200);
 
-        guiGraphics.blit(SCOPE_DETAIL, this.leftPos - 3, this.topPos, 0, 0, 256, 256, 256, 256);
+        graphics.blit(SCOPE_DETAIL, this.leftPos - 3, this.topPos, 0, 0, 256, 256, 256, 256);
 
-        final PlatformResourceKey itemKey = this.graph.getItemKey();
-        guiGraphics.drawString(this.font, this.title.getString() + " - Flow details", this.leftPos + 8, this.topPos + 6, 4210752, false);
-
-        this.graph.renderItem(guiGraphics, this.leftPos + 7, this.topPos + 26);
-        guiGraphics.drawString(this.font, this.graph.getItemName(), this.leftPos + 36, this.topPos + 30, WHITE);
+        this.graph.renderItem(graphics, this.leftPos + 7, this.topPos + 26);
+        graphics.drawString(this.font, this.graph.getItemName(), this.leftPos + 36, this.topPos + 30, WHITE);
 
         final int graphLeft = this.leftPos + 7;
         final int graphBottom = this.topPos + 134;
@@ -135,80 +131,82 @@ public class FlowScopeScreen extends AbstractContainerScreen<FlowScopeMenu> {
         final int graphHeight = this.graph.getGraphSize().y;
         this.graph.setGraphPos(graphLeft, graphBottom);
         if (this.graph.isLoading()) {
-            guiGraphics.drawString(this.font, "Loading...", graphLeft + (graphWidth / 4), graphBottom - (graphHeight / 2), WHITE);
+            graphics.drawString(this.font, "Loading...", graphLeft + (graphWidth / 4), graphBottom - (graphHeight / 2), WHITE);
             return;
         }
 
-        this.graph.drawGraphs(guiGraphics);
+        this.graph.drawGraphs(graphics);
 
         // Main stats
+        final PlatformResourceKey itemKey = this.graph.getItemKey();
+
         final int productionRowShift = 2;
-        guiGraphics.drawString(this.font, "Inflow", graphLeft + productionRowShift, graphBottom + TEXT_LINE_HEIGHT + 2, PRODUCTION_GREEN);
-        guiGraphics.drawString(this.font, "Max: " + this.formatAmount(itemKey, this.graph.getMaxProduction()) + this.granularity.perStr(),
+        graphics.drawString(this.font, "Inflow", graphLeft + productionRowShift, graphBottom + TEXT_LINE_HEIGHT + 2, PRODUCTION_GREEN);
+        graphics.drawString(this.font, "Max: " + this.formatAmount(itemKey, this.graph.getMaxProduction()) + this.granularity.perStr(),
             graphLeft + productionRowShift, graphBottom + 8 + TEXT_LINE_HEIGHT * 2, WHITE);
-        guiGraphics.drawString(this.font, "Min:  " + this.formatAmount(itemKey, this.graph.getMinProduction()) + this.granularity.perStr(),
+        graphics.drawString(this.font, "Min:  " + this.formatAmount(itemKey, this.graph.getMinProduction()) + this.granularity.perStr(),
             graphLeft + productionRowShift, graphBottom + 8 + TEXT_LINE_HEIGHT * 3, WHITE);
 
         final int consumptionRowShift = 78;
-        guiGraphics.drawString(this.font, "Outflow", graphLeft + consumptionRowShift, graphBottom + TEXT_LINE_HEIGHT + 2, CONSUMPTION_RED);
-        guiGraphics.drawString(this.font, "Max: " + this.formatAmount(itemKey, this.graph.getMaxConsumption()) + this.granularity.perStr(),
+        graphics.drawString(this.font, "Outflow", graphLeft + consumptionRowShift, graphBottom + TEXT_LINE_HEIGHT + 2, CONSUMPTION_RED);
+        graphics.drawString(this.font, "Max: " + this.formatAmount(itemKey, this.graph.getMaxConsumption()) + this.granularity.perStr(),
             graphLeft + consumptionRowShift, graphBottom + 8 + TEXT_LINE_HEIGHT * 2, WHITE);
-        guiGraphics.drawString(this.font, "Min:  " + this.formatAmount(itemKey, this.graph.getMinConsumption()) + this.granularity.perStr(),
+        graphics.drawString(this.font, "Min:  " + this.formatAmount(itemKey, this.graph.getMinConsumption()) + this.granularity.perStr(),
             graphLeft + consumptionRowShift, graphBottom + 8 + TEXT_LINE_HEIGHT * 3, WHITE);
 
         // Average lines
-        guiGraphics.drawString(this.font, "Avg", graphLeft + graphWidth + 8, graphBottom - graphHeight - 14, WHITE);
+        graphics.drawString(this.font, "Avg", graphLeft + graphWidth + 8, graphBottom - graphHeight - 14, WHITE);
 
         final double decAvg = this.graph.getAvgConsumption();
         final Vector2i decAvgPoint = this.graph.getGuiXYFromGraphValue(0, (long) decAvg);
-        this.graph.drawLine(guiGraphics, graphLeft, decAvgPoint.y, graphLeft + graphWidth + 20, decAvgPoint.y, CONSUMPTION_RED, 1, LineStyle.EXACT);
+        this.graph.drawLine(graphics, graphLeft, decAvgPoint.y, graphLeft + graphWidth + 20, decAvgPoint.y, CONSUMPTION_RED, 1, LineStyle.EXACT);
 
         final double incAvg = this.graph.getAvgProduction();
         final Vector2i incAvgPoint = this.graph.getGuiXYFromGraphValue(0, (long) incAvg);
-        this.graph.drawLine(guiGraphics, graphLeft, incAvgPoint.y, graphLeft + graphWidth + 20, incAvgPoint.y, PRODUCTION_GREEN, 1, LineStyle.EXACT);
+        this.graph.drawLine(graphics, graphLeft, incAvgPoint.y, graphLeft + graphWidth + 20, incAvgPoint.y, PRODUCTION_GREEN, 1, LineStyle.EXACT);
 
         // Average line values
         final int avgValueShift = 3;
         if (incAvg >= decAvg) {
-            guiGraphics.drawString(this.font, "+" + this.formatAmount(itemKey, (long) incAvg) + this.granularity.perStr(),
+            graphics.drawString(this.font, "+" + this.formatAmount(itemKey, (long) incAvg) + this.granularity.perStr(),
                 graphLeft + graphWidth + avgValueShift, incAvgPoint.y - 10, PRODUCTION_GREEN);
-            guiGraphics.drawString(this.font, "-" + this.formatAmount(itemKey, (long) decAvg) + this.granularity.perStr(),
+            graphics.drawString(this.font, "-" + this.formatAmount(itemKey, (long) decAvg) + this.granularity.perStr(),
                 graphLeft + graphWidth + avgValueShift, decAvgPoint.y + 2, CONSUMPTION_RED);
         } else {
-            guiGraphics.drawString(this.font, "+" + this.formatAmount(itemKey, (long) incAvg) + this.granularity.perStr(),
+            graphics.drawString(this.font, "+" + this.formatAmount(itemKey, (long) incAvg) + this.granularity.perStr(),
                 graphLeft + graphWidth + avgValueShift, incAvgPoint.y + 2, PRODUCTION_GREEN);
-            guiGraphics.drawString(this.font, "-" + this.formatAmount(itemKey, (long) decAvg) + this.granularity.perStr(),
+            graphics.drawString(this.font, "-" + this.formatAmount(itemKey, (long) decAvg) + this.granularity.perStr(),
                 graphLeft + graphWidth + avgValueShift, decAvgPoint.y - 10, CONSUMPTION_RED);
         }
 
         // Estimates
         final int estimatesRowShift = 159;
-        guiGraphics.drawString(this.font, "Estimates (net)", graphLeft + estimatesRowShift, graphBottom + 25,
+        graphics.drawString(this.font, "Estimates (net)", graphLeft + estimatesRowShift, graphBottom + 25,
             ESTIMATES_BLUE);
         final long seconds = (long) Granularity.SECOND.convertFrom(this.granularity, this.graph.getNetAvg());
-        guiGraphics.drawString(this.font, this.formatSignedAmount(itemKey, seconds) + Granularity.SECOND.perStr(),
+        graphics.drawString(this.font, this.formatSignedAmount(itemKey, seconds) + Granularity.SECOND.perStr(),
             graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 3, WHITE);
         final long minutes = (long) Granularity.MINUTE.convertFrom(this.granularity, this.graph.getNetAvg());
-        guiGraphics.drawString(this.font, this.formatSignedAmount(itemKey, minutes) + Granularity.MINUTE.perStr(),
+        graphics.drawString(this.font, this.formatSignedAmount(itemKey, minutes) + Granularity.MINUTE.perStr(),
             graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 4, WHITE);
         final long hours = (long) Granularity.HOUR.convertFrom(this.granularity, this.graph.getNetAvg());
-        guiGraphics.drawString(this.font, this.formatSignedAmount(itemKey, hours) + Granularity.HOUR.perStr(),
+        graphics.drawString(this.font, this.formatSignedAmount(itemKey, hours) + Granularity.HOUR.perStr(),
             graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 5, WHITE);
         final long days = (long) Granularity.DAY.convertFrom(this.granularity, this.graph.getNetAvg());
-        guiGraphics.drawString(this.font, this.formatSignedAmount(itemKey, days) + Granularity.DAY.perStr(),
+        graphics.drawString(this.font, this.formatSignedAmount(itemKey, days) + Granularity.DAY.perStr(),
             graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 6, WHITE);
 
         // Overall stats
         final long net = Arrays.stream(this.graph.getNetData()).sum();
-        guiGraphics.drawString(this.font, "Total in storage: " + this.graph.getTotalStored(), graphLeft + productionRowShift,
+        graphics.drawString(this.font, "Total in storage: " + this.graph.getTotalStored(), graphLeft + productionRowShift,
             graphBottom + 4 + TEXT_LINE_HEIGHT * 5, WHITE);
-        guiGraphics.drawString(this.font, "Net in this timeframe: " + (net > 0 ? "+" : "") + this.formatAmount(itemKey, net),
+        graphics.drawString(this.font, "Net in this timeframe: " + (net > 0 ? "+" : "") + this.formatAmount(itemKey, net),
             graphLeft + productionRowShift, graphBottom + 4 + TEXT_LINE_HEIGHT * 6, WHITE);
 
-        guiGraphics.pose().popPose();
+        graphics.pose().popPose();
     }
 
-    private void renderSimpleGenerationStats(final GuiGraphics guiGraphics, final int mouseX, final int mouseY) {
+    private void renderSimpleGenerationStats(final GuiGraphics graphics, final int mouseX, final int mouseY) {
         RenderSystem.setShaderColor(1, 1, 1, 1);
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -253,7 +251,7 @@ public class FlowScopeScreen extends AbstractContainerScreen<FlowScopeMenu> {
                 null,
                 List.of(new ClientTextTooltip(resourceRendering.getDisplayName(itemKey).getVisualOrderText()))
             );
-            button.render(guiGraphics, mouseX, mouseY);
+            button.render(graphics, mouseX, mouseY);
             this.itemButtons.add(button);
 
             // Adding margins
@@ -261,18 +259,18 @@ public class FlowScopeScreen extends AbstractContainerScreen<FlowScopeMenu> {
             final int top = itemY + 4;
 
             // Rendering item texture
-            resourceRendering.render(itemKey, guiGraphics, left, top);
+            resourceRendering.render(itemKey, graphics, left, top);
 
             // Rendering generation stats
             final long net = (itemChange.get((short) +1)) - (itemChange.get((short) -1));
-            guiGraphics.drawString(this.font,
+            graphics.drawString(this.font,
                 this.formatSignedAmount(itemKey, net) + this.granularity.perStr(),
                 left + 20, top + 5,
                 (net > 0 ? PRODUCTION_GREEN : net < 0 ? CONSUMPTION_RED : WHITE));
-            // guiGraphics.drawString(font,
+            // graphics.drawString(font,
             // "+"+ItemResourceRendering.INSTANCE.formatAmount(itemChange.get((short) +1),
             // true)+granularity.perStr(), left + 20, top, PRODUCTION_GREEN);
-            // guiGraphics.drawString(font,
+            // graphics.drawString(font,
             // "-"+ItemResourceRendering.INSTANCE.formatAmount(itemChange.get((short) -1),
             // true)+granularity.perStr(), left + 20, top + 10, CONSUMPTION_RED);
 
@@ -289,7 +287,7 @@ public class FlowScopeScreen extends AbstractContainerScreen<FlowScopeMenu> {
     }
 
     private void requestDetailedGenerationStats(final PlatformResourceKey itemKey, final boolean manual) {
-        if (this.entity instanceof Player player && player.containerMenu instanceof FlowScopeMenu flowMenu) {
+        if (this.entity instanceof Player player && player.containerMenu instanceof FlowScopeContainerMenu flowMenu) {
             if (manual) {
                 this.graph.setLoading(true);
             }
@@ -299,7 +297,7 @@ public class FlowScopeScreen extends AbstractContainerScreen<FlowScopeMenu> {
     }
 
     private void requestSimpleGenerationStats() {
-        if (this.entity instanceof Player player && player.containerMenu instanceof FlowScopeMenu flowMenu) {
+        if (this.entity instanceof Player player && player.containerMenu instanceof FlowScopeContainerMenu flowMenu) {
             flowMenu.sendMenuStateUpdate(player, 4, "simpleFactoryGenerationRequest", this.granularity.getTickAmount(), false);
         }
     }
@@ -395,25 +393,25 @@ public class FlowScopeScreen extends AbstractContainerScreen<FlowScopeMenu> {
     }
 
     @Override
-    public void removed() {
-        super.removed(); //TODO: ??
-        final BlockState blockState = this.world.getBlockState(new BlockPos(this.x, this.y, this.z))
-            .setValue(FlowScopeBlock.SORT_TYPE, this.sortingType.ordinal())
-            .setValue(FlowScopeBlock.SORT_DIRECTION, this.sortingDirection.ordinal())
-            .setValue(FlowScopeBlock.GRANULARITY, this.granularity.ordinal());
-        this.world.setBlock(new BlockPos(this.x, this.y, this.z), blockState, 0); // temporary, client-side only
+    public void removed() { //TODO: save it properly
+        super.removed();
+//        final BlockState blockState = this.world.getBlockState(new BlockPos(this.x, this.y, this.z))
+//            .setValue(FlowScopeBlock.SORT_TYPE, this.sortingType.ordinal())
+//            .setValue(FlowScopeBlock.SORT_DIRECTION, this.sortingDirection.ordinal())
+//            .setValue(FlowScopeBlock.GRANULARITY, this.granularity.ordinal());
+//        this.world.setBlock(new BlockPos(this.x, this.y, this.z), blockState, 0);
     }
 
     @Override
     public void init() {
         super.init();
-        this.buttonDone = Button.builder(Component.translatable("gui.done"), b -> {
+        this.doneButton = Button.builder(Component.translatable("gui.done"), b -> {
             if (this.minecraft == null || this.minecraft.player == null) {
                 return;
             }
             this.minecraft.player.closeContainer();
         }).bounds(this.leftPos + 195, this.topPos + 205, 46, 20).build();
-        this.addRenderableWidget(this.buttonDone);
+        this.addRenderableWidget(this.doneButton);
 
         this.searchField = new SearchFieldWidget(this.font, this.leftPos + 94 + 1 + 58, this.topPos + 6 + 1, 67, new History(new ArrayList<>()));
         this.addWidget(this.searchField);
@@ -425,9 +423,9 @@ public class FlowScopeScreen extends AbstractContainerScreen<FlowScopeMenu> {
         this.addRenderableWidget(this.scrollbar);
 
         final BlockState blockState = this.world.getBlockState(new BlockPos(this.x, this.y, this.z));
-        // TODO: maybe save that data back?
-        this.sortingType = SortingType.values()[blockState.getValue(FlowScopeBlock.SORT_TYPE)];
-        this.sortingDirection = SortingDirection.values()[blockState.getValue(FlowScopeBlock.SORT_DIRECTION)];
+        // TODO: save the data correctly
+//        this.sortingType = SortingType.values()[blockState.getValue(FlowScopeBlock.SORT_TYPE)];
+//        this.sortingDirection = SortingDirection.values()[blockState.getValue(FlowScopeBlock.SORT_DIRECTION)];
     }
 
     @Override
@@ -475,27 +473,27 @@ public class FlowScopeScreen extends AbstractContainerScreen<FlowScopeMenu> {
     }
 
     @Override
-    public void render(final GuiGraphics guiGraphics, final int mouseX, final int mouseY, final float partialTicks) {
-        super.render(guiGraphics, mouseX, mouseY, partialTicks);
-        this.renderSimpleGenerationStats(guiGraphics, mouseX, mouseY);
-        this.renderSideButtons(guiGraphics, mouseX, mouseY);
+    public void render(final GuiGraphics graphics, final int mouseX, final int mouseY, final float partialTicks) {
+        super.render(graphics, mouseX, mouseY, partialTicks);
+        this.renderSimpleGenerationStats(graphics, mouseX, mouseY);
+        this.renderSideButtons(graphics, mouseX, mouseY);
         if (this.hasDetailedGenerationData) {
-            this.renderDetailedGenerationStats(guiGraphics, mouseX, mouseY);
+            this.renderDetailedGenerationStats(graphics, mouseX, mouseY);
         }
-        this.searchField.render(guiGraphics, 0, 0, 0.0F);
-        this.renderTooltip(guiGraphics, mouseX, mouseY);
+        this.searchField.render(graphics, 0, 0, 0.0F);
+        this.renderTooltip(graphics, mouseX, mouseY);
     }
 
     @Override
-    protected void renderBg(final GuiGraphics guiGraphics, final float partialTicks, final int mouseX, final int mouseY) {
+    protected void renderBg(final GuiGraphics graphics, final float partialTicks, final int mouseX, final int mouseY) {
         RenderSystem.setShaderColor(1, 1, 1, 1);
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        guiGraphics.blit(SCOPE, this.leftPos - 3, this.topPos, 0, 0, 256, 256, 256, 256);
+        graphics.blit(SCOPE, this.leftPos - 3, this.topPos, 0, 0, 256, 256, 256, 256);
         RenderSystem.disableBlend();
     }
 
-    private void renderSideButtons(final GuiGraphics guiGraphics, final int mouseX, final int mouseY) {
+    private void renderSideButtons(final GuiGraphics graphics, final int mouseX, final int mouseY) {
         this.sideButtons.clear();
         final Function<String, String> capitalCase = a -> a.substring(0, 1).toUpperCase() + a.substring(1).toLowerCase();
         final DynamicButton sortingDirectionButton = new DynamicButton(this.leftPos - 24, this.topPos + 6, 18, 18, "",
@@ -506,7 +504,7 @@ public class FlowScopeScreen extends AbstractContainerScreen<FlowScopeMenu> {
                 new ClientTextTooltip(Component.literal("Sorting direction").getVisualOrderText()),
                 new ClientTextTooltip(Component.literal(capitalCase.apply(this.sortingDirection.toString()))
                     .withColor(Color.LIGHT_GRAY.getRGB()).getVisualOrderText())));
-        sortingDirectionButton.render(guiGraphics, mouseX, mouseY);
+        sortingDirectionButton.render(graphics, mouseX, mouseY);
         this.sideButtons.add(sortingDirectionButton);
 
         final DynamicButton sortingTypeButton = new DynamicButton(this.leftPos - 24, this.topPos + 6 + SIDE_BUTTON_ROW_HEIGHT, 18, 18,
@@ -518,7 +516,7 @@ public class FlowScopeScreen extends AbstractContainerScreen<FlowScopeMenu> {
                 new ClientTextTooltip(Component.literal("Sorting Type").getVisualOrderText()),
                 new ClientTextTooltip(Component.literal(capitalCase.apply(this.sortingType.toString()))
                     .withColor(Color.LIGHT_GRAY.getRGB()).getVisualOrderText())));
-        sortingTypeButton.render(guiGraphics, mouseX, mouseY);
+        sortingTypeButton.render(graphics, mouseX, mouseY);
         this.sideButtons.add(sortingTypeButton);
 
         final DynamicButton granularityButton = new DynamicButton(this.leftPos - 24, this.topPos + 6 + (SIDE_BUTTON_ROW_HEIGHT * 2), 18,
@@ -537,7 +535,7 @@ public class FlowScopeScreen extends AbstractContainerScreen<FlowScopeMenu> {
                 new ClientTextTooltip(Component.literal("Granularity").getVisualOrderText()),
                 new ClientTextTooltip(Component.literal(capitalCase.apply(this.granularity.toString()))
                     .withColor(Color.LIGHT_GRAY.getRGB()).getVisualOrderText())));
-        granularityButton.render(guiGraphics, mouseX, mouseY);
+        granularityButton.render(graphics, mouseX, mouseY);
         this.sideButtons.add(granularityButton);
 
         final DynamicButton styleButton = new DynamicButton(this.leftPos - 24, this.topPos + 6 + (SIDE_BUTTON_ROW_HEIGHT * 3), 18, 18,
@@ -551,28 +549,28 @@ public class FlowScopeScreen extends AbstractContainerScreen<FlowScopeMenu> {
                 new ClientTextTooltip(Component.literal("Line Style").getVisualOrderText()),
                 new ClientTextTooltip(Component.literal(capitalCase.apply(this.graph.lineStyle.toString()))
                     .withColor(Color.LIGHT_GRAY.getRGB()).getVisualOrderText())));
-        styleButton.render(guiGraphics, mouseX, mouseY);
+        styleButton.render(graphics, mouseX, mouseY);
         this.sideButtons.add(styleButton);
 
     }
 
     @Override
-    protected void renderLabels(final GuiGraphics guiGraphics, final int mouseX, final int mouseY) {
-        guiGraphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 4210752, false);
+    protected void renderLabels(final GuiGraphics graphics, final int mouseX, final int mouseY) {
+        graphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 4210752, false);
     }
 
     @Override
-    protected void renderTooltip(final GuiGraphics guiGraphics, final int mouseX, final int mouseY) {
+    protected void renderTooltip(final GuiGraphics graphics, final int mouseX, final int mouseY) {
         if (this.hasDetailedGenerationData) {
-            this.graph.renderTooltip(guiGraphics, mouseX, mouseY);
+            this.graph.renderTooltip(graphics, mouseX, mouseY);
         } else {
             for (final DynamicButton button : this.itemButtons) {
-                button.renderTooltip(guiGraphics, mouseX, mouseY);
+                button.renderTooltip(graphics, mouseX, mouseY);
             }
         }
         for (final DynamicButton button : this.sideButtons) {
-            button.renderTooltip(guiGraphics, mouseX, mouseY);
+            button.renderTooltip(graphics, mouseX, mouseY);
         }
-        super.renderTooltip(guiGraphics, mouseX, mouseY);
+        super.renderTooltip(graphics, mouseX, mouseY);
     }
 }

@@ -1,6 +1,6 @@
 package com.ultramega.refinedflowanalytics.registry;
 
-import com.ultramega.refinedflowanalytics.container.FlowScopeMenu;
+import com.ultramega.refinedflowanalytics.container.FlowScopeContainerMenu;
 
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
@@ -13,8 +13,8 @@ import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdenti
 public class ModMenus {
     public static final DeferredRegister<MenuType<?>> REGISTRY = DeferredRegister.create(Registries.MENU, MOD_ID);
 
-    public static final DeferredHolder<MenuType<?>, MenuType<FlowScopeMenu>> FLOW_SCOPE_MENU =
-        REGISTRY.register("flow_scope_menu", () -> IMenuTypeExtension.create(FlowScopeMenu::new));
+    public static final DeferredHolder<MenuType<?>, MenuType<FlowScopeContainerMenu>> FLOW_SCOPE_MENU =
+        REGISTRY.register("flow_scope_menu", () -> IMenuTypeExtension.create(FlowScopeContainerMenu::new));
 
     private ModMenus() {
     }

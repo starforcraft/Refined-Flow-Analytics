@@ -1,0 +1,13 @@
+{
+  "parent": "refinedstorage:block/emissive_north_cutout",
+  "textures": {
+    "cutout": "refinedflowanalytics:block/flow_scope/cutouts/lime",
+    "down": "refinedstorage:block/bottom",
+    "east": "refinedflowanalytics:block/flow_scope/right",
+    "north": "refinedflowanalytics:block/flow_scope/front",
+    "particle": "refinedflowanalytics:block/flow_scope/right",
+    "south": "refinedflowanalytics:block/flow_scope/back",
+    "up": "refinedflowanalytics:block/flow_scope/top",
+    "west": "refinedflowanalytics:block/flow_scope/left"
+  }
+}

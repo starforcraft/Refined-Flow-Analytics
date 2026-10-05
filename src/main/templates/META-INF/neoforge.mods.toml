@@ -1,0 +1,32 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="GPL"
+
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="Refined Flow Analytics"
+displayURL="https://github.com/starforcraft/Refined-Flow-Analytics"
+authors="Ultramega, XaMi"
+description="Tracks resource production and consumption in Refined Storage networks with live statistics and historical graphs."
+
+[[dependencies.${mod_id}]]
+    modId="neoforge"
+    type="required"
+    versionRange="[21.1.200,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="minecraft"
+    type="required"
+    versionRange="[1.21.1]"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="refinedstorage"
+    type="required"
+    versionRange="[2.0.9,)"
+    ordering="NONE"
+    side="BOTH"

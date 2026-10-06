@@ -30,3 +30,6 @@ description="Tracks resource production and consumption in Refined Storage netwo
     versionRange="[2.0.9,)"
     ordering="NONE"
     side="BOTH"
+
+[[mixins]]
+    config="refinedflowanalytics.mixins.json"

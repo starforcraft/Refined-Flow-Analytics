@@ -12,5 +12,5 @@
 - Throughput monitor block (shows live graph or current change outside like storage monitor block)
 - Add throughput to Network Monitor (the new analytic tool raoul is working on)
 - Flow Detector (give redstone signal on specific if cases)
-- Leaving and joining into world counts as inflow, fix (Only for recently changed resources?)
+- Leaving and joining into world counts as inflow, fix (Only for recently changed resources?) ✅
 - Total resource inflow/outflow view

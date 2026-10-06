@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.ultramega.refinedflowanalytics.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "CompositeStorageImplMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

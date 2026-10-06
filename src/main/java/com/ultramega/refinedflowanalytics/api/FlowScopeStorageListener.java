@@ -33,11 +33,7 @@ public class FlowScopeStorageListener implements RootStorageListener {
 
     @Override
     public void changed(final MutableResourceList.OperationResult change) {
-        if (change.change() == 0) {
-            return;
-        }
-        // Abstract condition to filter out network change
-        if ((Math.abs(change.change()) >= (change.amount() * .5)) && Math.abs(change.change()) > 30) {
+        if (change.change() == 0 || StorageSourceChangeContext.isSourceChange()) {
             return;
         }
         final short sign = (short) (change.change() >= 0 ? +1 : -1);

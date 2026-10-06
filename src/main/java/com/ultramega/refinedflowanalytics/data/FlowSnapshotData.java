@@ -29,7 +29,7 @@ import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdenti
 public class FlowSnapshotData extends SavedData {
     private static final int FORMAT_VERSION = 2;
     private static final int DATA_GRANULARITY = 20;
-    // Seven days of active recording, measured in snapshots rather than ticks.
+    // Seven days of active recording, measured in snapshots rather than ticks
     private static final int MAX_COLLECTION_SNAPSHOTS = 20 * 60 * 60 * 24 * 7 / DATA_GRANULARITY;
     private static final int MAX_SNAPSHOTS_FOR_CLIENTBOUND_PACKET = 209;
 

@@ -1,9 +1,14 @@
 package com.ultramega.refinedflowanalytics.container;
 
 import com.ultramega.refinedflowanalytics.block.entity.FlowScopeBlockEntity;
+import com.ultramega.refinedflowanalytics.config.ClientConfig;
 import com.ultramega.refinedflowanalytics.network.MenuStateUpdateMessage;
 import com.ultramega.refinedflowanalytics.registry.ModMenus;
 import com.ultramega.refinedflowanalytics.registry.ModScreens;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.Granularity;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.LineStyle;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.SortingDirection;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.SortingType;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
@@ -60,6 +65,46 @@ public class FlowScopeContainerMenu extends AbstractContainerMenu {
                 ModScreens.updateMenuState(message);
             }
             PacketDistributor.sendToServer(message);
+        }
+    }
+
+    public SortingDirection getSortingDirection() {
+        return this.world.isClientSide ? ClientConfig.INSTANCE.getSortingDirection() : SortingDirection.DESCENDING;
+    }
+
+    public void setSortingDirection(final SortingDirection value) {
+        if (this.world.isClientSide) {
+            ClientConfig.INSTANCE.setSortingDirection(value);
+        }
+    }
+
+    public SortingType getSortingType() {
+        return this.world.isClientSide ? ClientConfig.INSTANCE.getSortingType() : SortingType.QUANTITY;
+    }
+
+    public void setSortingType(final SortingType value) {
+        if (this.world.isClientSide) {
+            ClientConfig.INSTANCE.setSortingType(value);
+        }
+    }
+
+    public Granularity getGranularity() {
+        return this.world.isClientSide ? ClientConfig.INSTANCE.getGranularity() : Granularity.MINUTE;
+    }
+
+    public void setGranularity(final Granularity value) {
+        if (this.world.isClientSide) {
+            ClientConfig.INSTANCE.setGranularity(value);
+        }
+    }
+
+    public LineStyle getLineStyle() {
+        return this.world.isClientSide ? ClientConfig.INSTANCE.getLineStyle() : LineStyle.BLOCKY;
+    }
+
+    public void setLineStyle(final LineStyle value) {
+        if (this.world.isClientSide) {
+            ClientConfig.INSTANCE.setLineStyle(value);
         }
     }
 

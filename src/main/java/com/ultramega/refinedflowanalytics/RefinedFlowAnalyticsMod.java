@@ -1,5 +1,6 @@
 package com.ultramega.refinedflowanalytics;
 
+import com.ultramega.refinedflowanalytics.config.ClientConfig;
 import com.ultramega.refinedflowanalytics.network.MenuStateUpdateMessage;
 import com.ultramega.refinedflowanalytics.registry.CreativeModeTabItems;
 import com.ultramega.refinedflowanalytics.registry.ModBlockEntities;
@@ -21,7 +22,9 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.util.thread.SidedThreadGroups;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
@@ -36,7 +39,8 @@ public class RefinedFlowAnalyticsMod {
     private static final Collection<Tuple<Runnable, Integer>> WORK_QUEUE = new ConcurrentLinkedQueue<>();
 
     // TODO: make multiloader-project
-    public RefinedFlowAnalyticsMod(final IEventBus modEventBus) {
+    public RefinedFlowAnalyticsMod(final IEventBus modEventBus, final ModContainer modContainer) {
+        modContainer.registerConfig(ModConfig.Type.CLIENT, ClientConfig.INSTANCE.getSpec());
         NeoForge.EVENT_BUS.register(this);
         modEventBus.addListener(this::registerNetworking);
 

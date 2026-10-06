@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
+
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTextTooltip;
@@ -29,32 +31,36 @@ import org.joml.Matrix4f;
 import org.joml.Vector2d;
 import org.joml.Vector2i;
 
+import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsTranslation;
+
 public class FlowScopeGraph {
-    private static final int MINECRAFT_STYLE_VERTICAL_RESOLUTION = 1;
-    private static final int HEIGHT = 80;
+    private static final int HEIGHT = 95;
     private static final int WIDTH = 200;
 
-    private static final int PRODUCTION_GRAPH_COLOR = 0xff4b7f52;
-    private static final int CONSUMPTION_GRAPH_COLOR = 0xffad343e;
+    private static final int PRODUCTION_GRAPH_COLOR = 0xff63cf78;
+    private static final int CONSUMPTION_GRAPH_COLOR = 0xffef6b73;
     private static final int NET_GRAPH_COLOR = 0xff66ddff;
-    private static final int GRAPH_GRADIENT_FROM = 0x00313f;
-    private static final int GRAPH_GRADIENT_TO = 0x66ddff;
+    private static final double NET_DASH_LENGTH = 5;
+    private static final double NET_DASH_GAP = 3;
+    private static final int PRODUCTION_AVERAGE_COLOR = 0xff427a49;
+    private static final int CONSUMPTION_AVERAGE_COLOR = 0xff9f464e;
+    private static final int ZERO_LINE_COLOR = 0xffa0a0a0;
+    private static final int VERTICAL_PADDING = 3;
 
     public LineStyle lineStyle = LineStyle.BLOCKY;
 
     private int left = 0;
     private int bottom = 0;
-    private long maxValue = 0;
-    private long minValue = 0;
+    private long maxValue = 1;
     private int pointsAmount = 0;
 
     private PlatformResourceKey itemKey;
     private Granularity granularity;
     private LocalDateTime dataTimeStamp;
 
-    private long[] productionData;
-    private long[] consumptionData;
-    private long[] netData;
+    private long[] productionData = new long[0];
+    private long[] consumptionData = new long[0];
+    private long[] netData = new long[0];
     private Long totalStored;
 
     private int selectedIndex = -1;
@@ -91,6 +97,9 @@ public class FlowScopeGraph {
 
     public void setLoading(final boolean loading) {
         this.loading = loading;
+        if (loading) {
+            this.selectedIndex = -1;
+        }
     }
 
     public void setGraphPos(final int graphLeft, final int graphBottom) {
@@ -109,17 +118,21 @@ public class FlowScopeGraph {
             new ResourceChangeGranularityKey(this.itemKey, (short) +1, granularity.getTickAmount()), new long[0]);
         this.consumptionData = data.getOrDefault(
             new ResourceChangeGranularityKey(this.itemKey, (short) -1, granularity.getTickAmount()), new long[0]);
-        this.netData = IntStream.range(0, this.productionData.length).mapToLong(i -> this.productionData[i] - this.consumptionData[i])
+        // Both streams share the same time buckets; an absent value means no flow.
+        this.pointsAmount = Math.max(this.productionData.length, this.consumptionData.length);
+        this.productionData = Arrays.copyOf(this.productionData, this.pointsAmount);
+        this.consumptionData = Arrays.copyOf(this.consumptionData, this.pointsAmount);
+        this.netData = IntStream.range(0, this.pointsAmount).mapToLong(i -> this.productionData[i] - this.consumptionData[i])
             .toArray();
         this.totalStored = Arrays
             .stream(data.getOrDefault(
                 new ResourceChangeGranularityKey(this.itemKey, (short) 0, granularity.getTickAmount()), new long[0]))
             .findAny().orElse(0L);
-        this.maxValue = Math.max(Arrays.stream(this.productionData).max().orElse(0L),
-            Arrays.stream(this.consumptionData).max().orElse(0L));
-        this.minValue = Math.max(Arrays.stream(this.productionData).min().orElse(0L),
-            Arrays.stream(this.consumptionData).min().orElse(0L));
-        this.pointsAmount = (int) Arrays.stream(this.productionData).count();
+        // Equal positive and negative limits keep zero centered, even for one-sided flow.
+        this.maxValue = Math.max(1L, Math.max(this.getMaxProduction(), this.getMaxConsumption()));
+        if (this.selectedIndex >= this.pointsAmount) {
+            this.selectedIndex = -1;
+        }
 
         this.dataTimeStamp = LocalDateTime.now();
         this.loading = false;
@@ -133,11 +146,19 @@ public class FlowScopeGraph {
                          final int color,
                          final int thickness,
                          final LineStyle lineStyle) {
-        // I've decided to go with .fill(), because it gives more Minecraft'y result than nice and straight GL-rendered lines.
+        if (x1 == x2 && y1 == y2) {
+            graphics.fill((int) Math.round(x1), (int) Math.round(y1),
+                (int) Math.round(x1) + thickness, (int) Math.round(y1) + thickness, color);
+            return;
+        }
         if (lineStyle == LineStyle.BLOCKY) {
-            final Vector2d p1 = new Vector2d(x1, Math.ceil(y1 / MINECRAFT_STYLE_VERTICAL_RESOLUTION) * MINECRAFT_STYLE_VERTICAL_RESOLUTION);
-            final Vector2d p2 = new Vector2d(x2, Math.floor(y2 / MINECRAFT_STYLE_VERTICAL_RESOLUTION) * MINECRAFT_STYLE_VERTICAL_RESOLUTION);
-            graphics.fill((int) p1.x, (int) p1.y, (int) p2.x, (int) (p2.y == p1.y ? p2.y + MINECRAFT_STYLE_VERTICAL_RESOLUTION : p2.y), color);
+            final int startX = (int) Math.round(x1);
+            final int endX = (int) Math.round(x2);
+            final int startY = (int) Math.round(y1);
+            final int endY = (int) Math.round(y2);
+            // Hold the previous sample, then step vertically to the next one.
+            graphics.fill(Math.min(startX, endX), startY, Math.max(startX, endX) + thickness, startY + thickness, color);
+            graphics.fill(endX, Math.min(startY, endY), endX + thickness, Math.max(startY, endY) + thickness, color);
         } else if (lineStyle == LineStyle.EXACT) {
             final double ht = thickness / 2f;
             final double rads = Math.atan2(y2 - y1, x2 - x1);
@@ -152,42 +173,7 @@ public class FlowScopeGraph {
             final VertexConsumer vc = graphics.bufferSource().getBuffer(RenderType.gui());
             points.forEach(p -> vc.addVertex(matrix4f, (float) p.x, (float) p.y, 0f).setColor(color));
             graphics.flush();
-
-            // debug
-            // graphics.fill((int) (x1 - ht + 1), (int) (y1 - ht + 1), (int) (x1 + ht -
-            // 1), (int) (y1 + ht - 1), color);
         }
-    }
-
-    public void drawGradientBg(final GuiGraphics graphics, final List<Vector2d> points, final int baseColor, final int targetColor) {
-        final int baseR = ((baseColor & 0xff0000) >> 16);
-        final int baseG = ((baseColor & 0x00ff00) >> 8);
-        final int baseB = baseColor & 0x0000ff;
-        final int targetR = ((targetColor & 0xff0000) >> 16) - baseR;
-        final int targetG = ((targetColor & 0x00ff00) >> 8) - baseG;
-        final int targetB = (targetColor & 0x0000ff) - baseB;
-        final int maxIdx = points.size() - 1;
-        IntStream.range(0, maxIdx).forEach(i -> {
-            final Vector2d a = points.get(i);
-            final Vector2d b = points.get(i + 1);
-
-            final int color = 0xff000000 + baseColor
-                + ((0x010000 * Math.round(((i + 1) * 1f / maxIdx) * targetR))
-                + (0x000100 * Math.round(((i + 1) * 1f / maxIdx) * targetG))
-                + (Math.round(((i + 1) * 1f / maxIdx) * targetB)));
-            final int prevColor = 0xff000000 + baseColor
-                + ((0x010000 * Math.round((i * 1f / maxIdx) * targetR))
-                + (0x000100 * Math.round((i * 1f / maxIdx) * targetG))
-                + (Math.round((i * 1f / maxIdx) * targetB)));
-
-            final Matrix4f matrix4f = graphics.pose().last().pose();
-            final VertexConsumer vc = graphics.bufferSource().getBuffer(RenderType.gui());
-            vc.addVertex(matrix4f, (float) b.x, (float) b.y, 0f).setColor(color);
-            vc.addVertex(matrix4f, (float) a.x, (float) a.y, 0f).setColor(prevColor);
-            vc.addVertex(matrix4f, (float) a.x, (float) this.bottom, 0f).setColor(prevColor);
-            vc.addVertex(matrix4f, (float) b.x, (float) this.bottom, 0f).setColor(color);
-            graphics.flush();
-        });
     }
 
     public void drawGraph(final GuiGraphics graphics, final List<Vector2d> points, final int thickness, final int color) {
@@ -200,11 +186,116 @@ public class FlowScopeGraph {
     }
 
     public void drawGraphs(final GuiGraphics graphics) {
-        final List<Vector2d> netPoints = this.getGuiXYArrayD(this.netData);
-        this.drawGradientBg(graphics, netPoints, GRAPH_GRADIENT_FROM, GRAPH_GRADIENT_TO);
-        this.drawGraph(graphics, netPoints, 1, NET_GRAPH_COLOR);
+        // Whole-window averages stay fixed while the user inspects a selection.
+        if (this.pointsAmount > 0) {
+            this.drawReferenceLine(graphics, this.getAvgProduction(), PRODUCTION_AVERAGE_COLOR);
+            this.drawReferenceLine(graphics, -this.getAvgConsumption(), CONSUMPTION_AVERAGE_COLOR);
+        }
+        this.drawReferenceLine(graphics, 0, ZERO_LINE_COLOR);
         this.drawGraph(graphics, this.productionData, 1, PRODUCTION_GRAPH_COLOR);
-        this.drawGraph(graphics, this.consumptionData, 1, CONSUMPTION_GRAPH_COLOR);
+        this.drawGraph(graphics, IntStream.range(0, this.consumptionData.length)
+            .mapToObj(i -> new Vector2d(this.getGuiX(i), this.getGuiY(-((double) this.consumptionData[i]))))
+            .toList(), 1, CONSUMPTION_GRAPH_COLOR);
+        // Net is signed inflow minus outflow and remains visible above the other curves.
+        this.drawNetGraph(graphics);
+    }
+
+    private void drawNetGraph(final GuiGraphics graphics) {
+        final List<Vector2d> samples = this.getGuiXYArrayD(this.netData);
+        if (samples.size() <= 1) {
+            this.drawGraph(graphics, samples, 1, NET_GRAPH_COLOR);
+            return;
+        }
+        final List<Vector2d> path = this.createGraphPath(samples);
+        final List<Vector2d> inflow = this.createGraphPath(this.getGuiXYArrayD(this.productionData));
+        final List<Vector2d> outflow = this.createGraphPath(IntStream.range(0, this.consumptionData.length)
+            .mapToObj(i -> new Vector2d(this.getGuiX(i), this.getGuiY(-((double) this.consumptionData[i]))))
+            .toList());
+
+        // Carry the dash phase across samples and step corners, including dense data.
+        boolean visible = true;
+        double remaining = NET_DASH_LENGTH;
+        for (int i = 1; i < path.size(); i++) {
+            final Vector2d start = path.get(i - 1);
+            final Vector2d end = path.get(i);
+            final double dx = end.x - start.x;
+            final double dy = end.y - start.y;
+            final double length = Math.hypot(dx, dy);
+            final double[] inflowOverlap = getOverlapRange(start, end, inflow.get(i - 1), inflow.get(i));
+            final double[] outflowOverlap = getOverlapRange(start, end, outflow.get(i - 1), outflow.get(i));
+            final List<Double> boundaries = new ArrayList<>(List.of(0.0, 1.0));
+            for (final double[] overlap : new double[][]{inflowOverlap, outflowOverlap}) {
+                if (overlap != null) {
+                    boundaries.add(overlap[0]);
+                    boundaries.add(overlap[1]);
+                }
+            }
+            boundaries.sort(Double::compare);
+            for (int part = 1; part < boundaries.size(); part++) {
+                final double midpoint = (boundaries.get(part - 1) + boundaries.get(part)) / 2;
+                final boolean overlapping = contains(inflowOverlap, midpoint) || contains(outflowOverlap, midpoint);
+                double position = boundaries.get(part - 1) * length;
+                final double limit = boundaries.get(part) * length;
+                while (position < limit - 1.0e-6) {
+                    final double amount = Math.min(remaining, limit - position);
+                    if (visible || !overlapping) {
+                        this.drawLine(graphics,
+                            start.x + dx * position / length, start.y + dy * position / length,
+                            start.x + dx * (position + amount) / length, start.y + dy * (position + amount) / length,
+                            NET_GRAPH_COLOR, 1, this.lineStyle);
+                    }
+                    position += amount;
+                    remaining -= amount;
+                    if (remaining < 1.0e-6) {
+                        visible = !visible;
+                        remaining = visible ? NET_DASH_LENGTH : NET_DASH_GAP;
+                    }
+                }
+            }
+        }
+    }
+
+    private List<Vector2d> createGraphPath(final List<Vector2d> samples) {
+        final List<Vector2d> path = new ArrayList<>();
+        path.add(samples.getFirst());
+        for (int i = 1; i < samples.size(); i++) {
+            if (this.lineStyle == LineStyle.BLOCKY) {
+                path.add(new Vector2d(samples.get(i).x, samples.get(i - 1).y));
+            }
+            path.add(samples.get(i));
+        }
+        return path;
+    }
+
+    private static boolean contains(final @Nullable double[] range, final double value) {
+        return range != null && value >= range[0] && value <= range[1];
+    }
+
+    private static @Nullable double[] getOverlapRange(final Vector2d start,
+                                                       final Vector2d end,
+                                                       final Vector2d flowStart,
+                                                       final Vector2d flowEnd) {
+        // Compare rendered positions so flows sharing a pixel also count as overlapping
+        final double tolerance = 0.75;
+        final boolean vertical = Math.abs(end.x - start.x) < 1.0e-6;
+        final double from = vertical ? start.y : start.y - flowStart.y;
+        final double to = vertical ? end.y : end.y - flowEnd.y;
+        final double lower = vertical ? Math.min(flowStart.y, flowEnd.y) - tolerance : -tolerance;
+        final double upper = vertical ? Math.max(flowStart.y, flowEnd.y) + tolerance : tolerance;
+        final double delta = to - from;
+        if (Math.abs(delta) < 1.0e-6) {
+            return from >= lower && from <= upper ? new double[]{0, 1} : null;
+        }
+        final double first = (lower - from) / delta;
+        final double last = (upper - from) / delta;
+        final double rangeStart = Math.clamp(Math.min(first, last), 0.0, 1.0);
+        final double rangeEnd = Math.clamp(Math.max(first, last), 0.0, 1.0);
+        return rangeStart < rangeEnd ? new double[]{rangeStart, rangeEnd} : null;
+    }
+
+    private void drawReferenceLine(final GuiGraphics graphics, final double value, final int color) {
+        final double y = this.getGuiY(value);
+        this.drawLine(graphics, this.left, y, this.left + WIDTH, y, color, 1, LineStyle.EXACT);
     }
 
     public ResourceRendering getResourceRendering() {
@@ -219,29 +310,26 @@ public class FlowScopeGraph {
         this.getResourceRendering().render(this.itemKey, graphics, x, y);
     }
 
-    public Vector2i getGuiXYFromGraphValue(final Integer index, final Long value) {
-        final int x = (int) ((WIDTH / Math.max(1, this.pointsAmount - 1f)) * index);
-        if (this.maxValue - this.minValue == 0) {
-            return new Vector2i(this.left + x, this.bottom - (HEIGHT / 2));
+    private double getGuiX(final double index) {
+        return this.left + (this.pointsAmount <= 1 ? WIDTH / 2.0 : WIDTH * index / (this.pointsAmount - 1.0));
+    }
+
+    public double getGuiY(final double value) {
+        final double halfHeight = HEIGHT / 2.0;
+        return this.bottom - halfHeight - (value / this.maxValue) * (halfHeight - VERTICAL_PADDING);
+    }
+
+    private int getSampleIndex(final double mouseX) {
+        if (this.pointsAmount <= 1) {
+            return 0;
         }
-        final int y = (int) ((Math.max(value, 0f) / this.maxValue) * HEIGHT);
-        return new Vector2i(this.left + x, this.bottom - y);
-    }
-
-    public Vector2i getGraphValueFromGuiXY(final double x, final double y) {
-        final int index = (int) Math.floor(((x - this.left) * ((this.pointsAmount - 1f) / WIDTH)));
-        final int value = (int) Math.max(0, this.maxValue * (this.bottom - y) / HEIGHT);
-        return new Vector2i(index, value);
-    }
-
-    public List<Vector2i> getGuiXYArray(final long[] arr) {
-        return IntStream.range(0, arr.length)
-            .mapToObj(i -> this.getGuiXYFromGraphValue(i, arr[i]))
-            .toList();
+        return (int) Math.round(Math.clamp((mouseX - this.left) / WIDTH, 0.0, 1.0) * (this.pointsAmount - 1));
     }
 
     public List<Vector2d> getGuiXYArrayD(final long[] arr) {
-        return this.getGuiXYArray(arr).stream().map(v -> new Vector2d(v.x, v.y)).toList();
+        return IntStream.range(0, arr.length)
+            .mapToObj(i -> new Vector2d(this.getGuiX(i), this.getGuiY(arr[i])))
+            .toList();
     }
 
     public Long getMaxProduction() {
@@ -253,7 +341,7 @@ public class FlowScopeGraph {
     }
 
     public double getAvgProduction() {
-        return Arrays.stream(this.productionData).average().orElse(0.0);
+        return Arrays.stream(this.productionData).mapToDouble(value -> value).average().orElse(0.0);
     }
 
     public Long getMaxConsumption() {
@@ -265,11 +353,11 @@ public class FlowScopeGraph {
     }
 
     public double getAvgConsumption() {
-        return Arrays.stream(this.consumptionData).average().orElse(0.0);
+        return Arrays.stream(this.consumptionData).mapToDouble(value -> value).average().orElse(0.0);
     }
 
     public double getNetAvg() {
-        return Arrays.stream(this.netData).average().orElse(0.0);
+        return Arrays.stream(this.netData).mapToDouble(value -> value).average().orElse(0.0);
     }
 
     public boolean isInBounds(final int mouseX, final int mouseY) {
@@ -277,9 +365,12 @@ public class FlowScopeGraph {
     }
 
     public boolean mouseClicked(final double mouseX, final double mouseY, final int button) {
+        if (this.loading || this.pointsAmount == 0) {
+            return false;
+        }
         if (button == 0) {
             if (this.isInBounds((int) mouseX, (int) mouseY)) {
-                this.selectedIndex = this.getGraphValueFromGuiXY(mouseX, mouseY).x;
+                this.selectedIndex = this.getSampleIndex(mouseX);
                 return true;
             }
         }
@@ -287,7 +378,7 @@ public class FlowScopeGraph {
     }
 
     public boolean mouseReleased(final double mouseX, final double mouseY, final int button) {
-        if (button == 0) {
+        if (button == 0 && this.selectedIndex != -1) {
             this.selectedIndex = -1;
             return true;
         }
@@ -295,20 +386,20 @@ public class FlowScopeGraph {
     }
 
     public void renderTooltip(final GuiGraphics graphics, final int mouseX, final int mouseY) {
+        if (this.loading || this.pointsAmount == 0) {
+            return;
+        }
         if (!this.isInBounds(mouseX, mouseY) && (this.selectedIndex == -1)) {
             return;
         }
-        final int index = this.getGraphValueFromGuiXY(mouseX, mouseY).x;
-        if ((index < 0 || index >= this.pointsAmount) && this.selectedIndex == -1) {
-            return;
-        }
+        final int index = this.getSampleIndex(mouseX);
+        final int indexFrom = this.selectedIndex == -1 ? index : Math.min(index, this.selectedIndex);
+        final int indexTo = (this.selectedIndex == -1 ? index : Math.max(index, this.selectedIndex)) + 1;
 
-        final int indexFrom = this.selectedIndex != -1 ? Math.clamp(index, 0, this.selectedIndex) : index;
-        final int indexTo = this.selectedIndex != -1 ? Math.max(Math.min(index, this.pointsAmount - 1) + 1, this.selectedIndex) : index + 1;
-
-        final int selectionX1 = this.getGuiXYFromGraphValue(indexFrom, 0L).x;
-        final int selectionX2 = this.getGuiXYFromGraphValue(indexTo, 0L).x;
-        graphics.fill(selectionX1, this.bottom, selectionX2, this.bottom - HEIGHT, 250, 0x66ffffff);
+        // Highlight complete sample cells, including both endpoints when dragging in either direction.
+        final int selectionX1 = indexFrom == 0 ? this.left : (int) Math.round(this.getGuiX(indexFrom - 0.5));
+        final int selectionX2 = indexTo == this.pointsAmount ? this.left + WIDTH : (int) Math.round(this.getGuiX(indexTo - 0.5));
+        graphics.fill(selectionX1, this.bottom - HEIGHT, selectionX2, this.bottom, 250, 0x22ffffff);
 
         final LocalDateTime indexDate = this.dataTimeStamp.minus(this.pointsAmount - indexFrom, this.granularity.getChronoUnit());
         final LocalDateTime nextIndexDate = this.dataTimeStamp.minus(this.pointsAmount - (indexTo), this.granularity.getChronoUnit());
@@ -320,17 +411,15 @@ public class FlowScopeGraph {
         final List<ClientTooltipComponent> lines = new ArrayList<>();
 
         lines.add(new ClientTextTooltip(resourceRendering.getDisplayName(this.itemKey).getVisualOrderText()));
-        lines.add(new SmallTextClientTooltipComponent(Component.literal(
-            "Flow between "
-                + indexDate.format(DateTimeFormatter.ofPattern("HH:mm:ss"))
-                + " and "
-                + nextIndexDate.format(DateTimeFormatter.ofPattern("HH:mm:ss")))));
+        lines.add(new SmallTextClientTooltipComponent(createFlowAnalyticsTranslation("gui", "flow_scope.flow_between",
+            indexDate.format(DateTimeFormatter.ofPattern("HH:mm:ss")),
+            nextIndexDate.format(DateTimeFormatter.ofPattern("HH:mm:ss")))));
         lines.add(new SmallTextClientTooltipComponent(
-            Component.literal(String.format("Inflow:  +%,d", incvalue)).withColor(0xff00ff00)));
+            createFlowAnalyticsTranslation("gui", "flow_scope.inflow_value", String.format("%,d", incvalue)).withColor(0xff00ff00)));
         lines.add(new SmallTextClientTooltipComponent(
-            Component.literal(String.format("Outflow: -%,d", decvalue)).withColor(0xffff0000)));
+            createFlowAnalyticsTranslation("gui", "flow_scope.outflow_value", String.format("%,d", decvalue)).withColor(0xffff0000)));
         lines.add(new SmallTextClientTooltipComponent(
-            Component.literal(String.format("Netflow: %,d", incvalue - decvalue)).withColor(0xff66ddff)));
+            createFlowAnalyticsTranslation("gui", "flow_scope.netflow_value", String.format("%,d", incvalue - decvalue)).withColor(0xff66ddff)));
         Platform.INSTANCE.renderTooltip(graphics, lines, mouseX, mouseY);
     }
 

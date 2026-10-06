@@ -18,6 +18,12 @@ public final class RefinedFlowAnalyticsIdentifierUtil {
         return Component.translatable(createFlowAnalyticsTranslationKey(category, value));
     }
 
+    public static MutableComponent createFlowAnalyticsTranslation(final String category,
+                                                                  final String value,
+                                                                  final Object... args) {
+        return Component.translatable(createFlowAnalyticsTranslationKey(category, value), args);
+    }
+
     public static String createFlowAnalyticsTranslationKey(final String category, final String value) {
         return String.format("%s.%s.%s", category, MOD_ID, value);
     }

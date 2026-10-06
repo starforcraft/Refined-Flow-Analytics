@@ -147,8 +147,11 @@ public class FlowScopeGraph {
                          final int thickness,
                          final LineStyle lineStyle) {
         if (x1 == x2 && y1 == y2) {
-            graphics.fill((int) Math.round(x1), (int) Math.round(y1),
-                (int) Math.round(x1) + thickness, (int) Math.round(y1) + thickness, color);
+            // Exact lines are centered on their coordinates, including isolated samples.
+            final double offset = lineStyle == LineStyle.EXACT ? thickness / 2.0 : 0;
+            final int x = (int) Math.round(x1 - offset);
+            final int y = (int) Math.round(y1 - offset);
+            graphics.fill(x, y, x + thickness, y + thickness, color);
             return;
         }
         if (lineStyle == LineStyle.BLOCKY) {
@@ -424,8 +427,12 @@ public class FlowScopeGraph {
     }
 
     private Stream<PointPair> getPairStream(final List<Vector2d> points) {
-        return IntStream.range(0, points.size())
-            .mapToObj(i -> new PointPair(i == 0 ? points.get(i) : points.get(i - 1), points.get(i)));
+        if (points.size() == 1) {
+            return Stream.of(new PointPair(points.getFirst(), points.getFirst()));
+        }
+        // Segments already include their endpoints; do not add a separate first-point square.
+        return IntStream.range(1, points.size())
+            .mapToObj(i -> new PointPair(points.get(i - 1), points.get(i)));
     }
 
     private record PointPair(Vector2d prev, Vector2d cur) {

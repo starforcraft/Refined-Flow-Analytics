@@ -100,10 +100,10 @@ public record MenuStateUpdateMessage(int elementType, String name, Object elemen
     }
 
     public static void handleMenuState(final MenuStateUpdateMessage message, final IPayloadContext context) {
-        if (message.name.length() > 256 || message.elementState instanceof String string && string.length() > 8192) {
+        if (message.name.length() > 256 || message.elementState instanceof String string && string.length() > 8192) { //TODO: this should be handled in the stream codec instead
             return;
         }
-        context.enqueueWork(() -> {
+        context.enqueueWork(() -> { //TODO: this is shit
             if (context.player().containerMenu instanceof FlowScopeContainerMenu menu) {
                 if ("detailedFactoryGenerationRequest".equals(message.name)) {
                     final ResourceChangeGranularityKey itemKey = ((ResourceChangeGranularityKey) message.elementState);

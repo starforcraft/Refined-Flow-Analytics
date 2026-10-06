@@ -5,6 +5,8 @@ import java.util.SequencedMap;
 
 import net.minecraft.resources.ResourceLocation;
 
+import static com.refinedmods.refinedstorage.common.util.IdentifierUtil.createIdentifier;
+
 public enum SortingDirection {
     ASCENDING,
     DESCENDING;
@@ -20,6 +22,6 @@ public enum SortingDirection {
     }
 
     public ResourceLocation getSprite() {
-        return ResourceLocation.fromNamespaceAndPath("refinedstorage", "widget/side_button/grid/sorting_direction/" + this.toString().toLowerCase(Locale.ROOT));
+        return createIdentifier("widget/side_button/grid/sorting_direction/" + this.toString().toLowerCase(Locale.ROOT));
     }
 }

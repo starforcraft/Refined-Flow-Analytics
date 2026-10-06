@@ -194,8 +194,8 @@ public class FlowScopeScreen extends AbstractBaseScreen<FlowScopeContainerMenu> 
         final int decAvgY = (int) Math.round(this.graph.getGuiY(-decAvg));
         final int averageLabelX = graphLeft + graphWidth + 3;
         // Leave room for the zero label, even when one or both averages are zero.
-        final int incLabelY = Math.clamp(incAvgY - 10, graphBottom - graphHeight, zeroY - 14);
-        final int decLabelY = Math.clamp(decAvgY + 2, zeroY + 5, graphBottom - this.font.lineHeight);
+        final int incLabelY = Math.clamp(incAvgY - 10, graphBottom - graphHeight, zeroY - 11);
+        final int decLabelY = Math.clamp(decAvgY + 2, zeroY + 2, graphBottom - this.font.lineHeight);
         graphics.drawString(this.font, "+" + this.formatAmount(itemKey, (long) incAvg) + granularity.perStr(),
             averageLabelX, incLabelY, PRODUCTION_GREEN);
         graphics.drawString(this.font, "-" + this.formatAmount(itemKey, (long) decAvg) + granularity.perStr(),

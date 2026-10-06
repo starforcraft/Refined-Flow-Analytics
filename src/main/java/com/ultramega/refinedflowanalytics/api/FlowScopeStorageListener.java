@@ -33,6 +33,9 @@ public class FlowScopeStorageListener implements RootStorageListener {
 
     @Override
     public void changed(final MutableResourceList.OperationResult change) {
+        if (change.change() == 0) {
+            return;
+        }
         // Abstract condition to filter out network change
         if ((Math.abs(change.change()) >= (change.amount() * .5)) && Math.abs(change.change()) > 30) {
             return;
@@ -44,7 +47,7 @@ public class FlowScopeStorageListener implements RootStorageListener {
     }
 
     public Map<ResourceChangeKey, Long> flushDeltaChange() {
-        this.lastSnapshot = new HashMap<>(this.deltaChange);
+        this.lastSnapshot = this.deltaChange.isEmpty() ? Map.of() : new HashMap<>(this.deltaChange);
         this.deltaChange.clear();
         return this.lastSnapshot;
     }

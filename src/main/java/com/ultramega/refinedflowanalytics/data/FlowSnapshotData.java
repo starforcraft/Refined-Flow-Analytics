@@ -8,18 +8,13 @@ import com.refinedmods.refinedstorage.common.support.resource.ResourceCodecs;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.LongBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import java.util.Optional;
 
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -32,42 +27,72 @@ import net.minecraft.world.level.saveddata.SavedData;
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.MOD_ID;
 
 public class FlowSnapshotData extends SavedData {
-    public final int dataGranularity = 20; // TODO: move to config
-    private final List<Map<ResourceChangeKey, Long>> snapshots = new ArrayList<>();
-    private final int maxCollectionSnapshots = 20 * 60 * 60 * 24 * 7; // TODO: move to config
-    private final int maxSnapshotsForClientboundPacket = 209; // moving that to config might be quite tricky
+    private static final int FORMAT_VERSION = 2;
+    private static final int DATA_GRANULARITY = 20;
+    // Seven days of active recording, measured in snapshots rather than ticks.
+    private static final int MAX_COLLECTION_SNAPSHOTS = 20 * 60 * 60 * 24 * 7 / DATA_GRANULARITY;
+    private static final int MAX_SNAPSHOTS_FOR_CLIENTBOUND_PACKET = 209;
 
-    private final Map<PlatformResourceKey, Integer> itemResolutionMap = new LinkedHashMap<>();
-
-    private final AtomicInteger itemIdCounter = new AtomicInteger(1);
+    public final int dataGranularity = DATA_GRANULARITY;
+    private final SparseSnapshotHistory<ResourceChangeKey> history = new SparseSnapshotHistory<>(MAX_COLLECTION_SNAPSHOTS);
 
     public static FlowSnapshotData load(final CompoundTag tag, final HolderLookup.Provider provider) {
         final FlowSnapshotData data = new FlowSnapshotData();
-        final ListTag snapshotsTag = tag.getList("snapshots", Tag.TAG_COMPOUND);
-        final CompoundTag itemsMapTag = tag.getCompound("items_map");
-        for (final String id : itemsMapTag.getAllKeys()) {
-            final int resourceId = Integer.parseInt(id);
-            ResourceCodecs.CODEC.parse(NbtOps.INSTANCE, itemsMapTag.get(id)).result()
-                .ifPresent(key -> data.itemResolutionMap.put(key, resourceId));
-            data.itemIdCounter.updateAndGet(next -> Math.max(next, resourceId + 1));
+        final int version = tag.getInt("format_version");
+        if (version != FORMAT_VERSION) {
+            throw new IllegalArgumentException("Unsupported flow history format: " + version);
         }
-        snapshotsTag.stream()
-            .map(CompoundTag.class::cast)
-            .map(t -> t.getAllKeys().stream()
-                // snapshot scope
-                .flatMap(itemId ->
-                    // item scope
-                    ResourceCodecs.CODEC
-                        .decode(NbtOps.INSTANCE, itemsMapTag.get(String.valueOf(
-                            Math.abs(Integer.parseInt(itemId)))))
-                        .result().stream()
-                        .map(p -> new ResourceChangeKey(p.getFirst(),
-                            t.getLong(itemId) > 0 ? (short) +1
-                                : (short) -1))
-                        .map(k -> Map.entry(k, t.getLong(itemId))))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
-            .forEach(data.snapshots::add);
+        final ListTag snapshots = tag.getList("snapshots", Tag.TAG_COMPOUND);
+        final CompoundTag dictionary = tag.getCompound("items_map");
+        final Map<Integer, Optional<PlatformResourceKey>> resolvedKeys = new HashMap<>();
+        final int intervals = tag.getInt("interval_count");
+        if (intervals < 0) {
+            throw new IllegalArgumentException("Negative flow history interval count");
+        }
+        final int retainedStart = Math.max(0, intervals - MAX_COLLECTION_SNAPSHOTS);
+        int cursor = retainedStart;
+        for (int i = 0; i < snapshots.size(); i++) {
+            final CompoundTag snapshot = snapshots.getCompound(i);
+            final int offset = snapshot.getInt("offset");
+            if (offset < retainedStart) {
+                continue;
+            }
+            if (offset < cursor || offset >= intervals) {
+                throw new IllegalArgumentException("Invalid flow history snapshot offset: " + offset);
+            }
+            data.history.advanceEmpty(offset - cursor);
+            data.history.record(readDeltas(snapshot.getCompound("deltas"), dictionary, resolvedKeys));
+            cursor = offset + 1;
+        }
+        data.history.advanceEmpty(intervals - cursor);
+        if (retainedStart > 0) {
+            data.setDirty();
+        }
         return data;
+    }
+
+    private static Map<ResourceChangeKey, Long> readDeltas(final CompoundTag snapshot,
+                                                         final CompoundTag dictionary,
+                                                         final Map<Integer, Optional<PlatformResourceKey>> resolvedKeys) {
+        final Map<ResourceChangeKey, Long> deltas = new HashMap<>();
+        for (final String signedId : snapshot.getAllKeys()) {
+            final long value = snapshot.getLong(signedId);
+            if (value == 0) {
+                continue;
+            }
+            final int id = Integer.parseInt(signedId);
+            if (id == 0 || id == Integer.MIN_VALUE) {
+                continue;
+            }
+            final Optional<PlatformResourceKey> resource = resolvedKeys.computeIfAbsent(Math.abs(id), key -> {
+                final String name = Integer.toString(key);
+                return dictionary.contains(name)
+                    ? ResourceCodecs.CODEC.parse(NbtOps.INSTANCE, dictionary.get(name)).result()
+                    : Optional.empty();
+            });
+            resource.ifPresent(key -> deltas.put(new ResourceChangeKey(key, id > 0 ? (short) +1 : (short) -1), value));
+        }
+        return deltas;
     }
 
     public static FlowSnapshotData get(final ServerLevel level, final int networkId) {
@@ -79,27 +104,27 @@ public class FlowSnapshotData extends SavedData {
 
     @Override
     public CompoundTag save(final CompoundTag tag, final HolderLookup.Provider provider) {
-        // write items map
-        final CompoundTag itemsResolutionMapTag = new CompoundTag();
-
-        this.itemResolutionMap.forEach((key, id) -> ResourceCodecs.CODEC.encodeStart(NbtOps.INSTANCE, key).result()
-            .ifPresent(k -> itemsResolutionMapTag.put(String.valueOf(id), k)));
-        tag.put("items_map", itemsResolutionMapTag);
-
-        // write snapshots
-        final ListTag snapshotsTag = new ListTag();
-        for (final Map<ResourceChangeKey, Long> snap : this.snapshots) {
-            final CompoundTag snapshotTag = new CompoundTag();
-            for (final var entry : snap.entrySet()) {
-                final int itemId = this.itemResolutionMap.computeIfAbsent(
-                    entry.getKey().resourceKey(),
-                    k -> this.itemIdCounter.getAndIncrement());
-                final int signedId = itemId * (entry.getKey().sign() > 0 ? 1 : -1);
-                snapshotTag.putLong(Integer.toString(signedId), entry.getValue());
-            }
-            snapshotsTag.add(snapshotTag);
-        }
-        tag.put("snapshots", snapshotsTag);
+        // Build a compact dictionary from retained entries only. Expired resource IDs disappear.
+        final Map<PlatformResourceKey, Integer> resourceIds = new LinkedHashMap<>();
+        final ListTag snapshots = new ListTag();
+        this.history.forEachStored((offset, changes) -> {
+            final CompoundTag deltas = new CompoundTag();
+            changes.forEach((key, value) -> {
+                final int id = resourceIds.computeIfAbsent(key.resourceKey(), resource -> resourceIds.size() + 1);
+                deltas.putLong(Integer.toString(key.sign() > 0 ? id : -id), value);
+            });
+            final CompoundTag snapshot = new CompoundTag();
+            snapshot.putInt("offset", offset);
+            snapshot.put("deltas", deltas);
+            snapshots.add(snapshot);
+        });
+        final CompoundTag dictionary = new CompoundTag();
+        resourceIds.forEach((key, id) -> ResourceCodecs.CODEC.encodeStart(NbtOps.INSTANCE, key).result()
+            .ifPresent(encoded -> dictionary.put(Integer.toString(id), encoded)));
+        tag.putInt("format_version", FORMAT_VERSION);
+        tag.putInt("interval_count", this.history.size());
+        tag.put("items_map", dictionary);
+        tag.put("snapshots", snapshots);
         return tag;
     }
 
@@ -117,97 +142,58 @@ public class FlowSnapshotData extends SavedData {
     }
 
     /**
-     * Record one snapshot of deltas
+     * Advance one recording interval, retaining only its nonzero deltas.
      */
     public void recordSnapshot(final Map<ResourceChangeKey, Long> deltaMap) {
-        // add new items to resolution map
-        for (final ResourceChangeKey key : deltaMap.keySet()) {
-            final PlatformResourceKey resKey = key.resourceKey();
-            this.itemResolutionMap.computeIfAbsent(resKey, k -> this.itemIdCounter.getAndIncrement());
+        if (this.history.record(deltaMap)) {
+            this.setDirty();
         }
-
-        this.snapshots.add(new HashMap<>(deltaMap));
-        this.trimToLast(this.maxCollectionSnapshots);
-        this.setDirty();
     }
 
-    /**
-     * Keep only the last N snapshots
-     */
     public void trimToLast(final int max) {
-        final int extra = this.snapshots.size() - max;
-        if (extra > 0) {
-            this.snapshots.subList(0, extra).clear();
+        if (this.history.trimToLast(max)) {
+            this.setDirty();
         }
     }
 
     public List<Map<ResourceChangeKey, Long>> getSnapshots() {
-        return Collections.unmodifiableList(this.snapshots);
+        return this.history.asList();
     }
 
-    private List<Map<ResourceChangeKey, Long>> aggregateSnapshotsToGranularity(final int desiredGranularity) {
-        final int granularity = desiredGranularity / this.dataGranularity;
-        /*
-         * First, we're splitting the list into frames from the end of the list
-         * (.reversed()).
-         * Then we're summing them all by key.
-         * Then we're reversing it back again.
-         *
-         * The whole double-reverse concept is there to take only the newest frames.
-         */
-        return IntStream.range(0, (int) Math.ceil((double) this.snapshots.size() / granularity))
-            // splitting into frames
-            .mapToObj(
-                i -> this.snapshots.reversed().subList(
-                    i * granularity,
-                    Math.min((i + 1) * granularity, this.snapshots.size())))
-            .map(frame -> (Map<ResourceChangeKey, Long>) frame.stream()
-                .flatMap(m -> m.entrySet().stream())
-                .collect(Collectors.toMap(
-                    Map.Entry::getKey,
-                    Map.Entry::getValue,
-                    Long::sum,
-                    LinkedHashMap::new)))
-            .limit(this.maxSnapshotsForClientboundPacket)
-            .toList()
-            .reversed();
+    private int intervalsPerFrame(final int desiredGranularity) {
+        if (desiredGranularity < DATA_GRANULARITY || desiredGranularity % DATA_GRANULARITY != 0) {
+            throw new IllegalArgumentException("Flow granularity must be a positive multiple of " + DATA_GRANULARITY);
+        }
+        return desiredGranularity / DATA_GRANULARITY;
     }
 
     public Map<ResourceChangeGranularityKey, long[]> getGenerationDetails(final PlatformResourceKey itemKey,
                                                                           final int desiredGranularity) {
-        LongBuffer incbuf = LongBuffer.allocate(this.maxSnapshotsForClientboundPacket);
-        LongBuffer decbuf = LongBuffer.allocate(this.maxSnapshotsForClientboundPacket);
-        final List<Map<ResourceChangeKey, Long>> aggregatedSnapshots = this.aggregateSnapshotsToGranularity(
-            desiredGranularity);
-        for (final Map<ResourceChangeKey, Long> snapshot : aggregatedSnapshots) {
-            if (incbuf.hasRemaining()) {
-                incbuf.put(snapshot.getOrDefault(new ResourceChangeKey(itemKey, (short) +1), 0L));
-                decbuf.put(Math.abs(
-                    snapshot.getOrDefault(new ResourceChangeKey(itemKey, (short) -1), 0L)));
-            }
+        final int intervals = this.intervalsPerFrame(desiredGranularity);
+        final int frames = this.history.frameCount(intervals, MAX_SNAPSHOTS_FOR_CLIENTBOUND_PACKET);
+        final long[] inflow = new long[frames];
+        final long[] outflow = new long[frames];
+        final ResourceChangeKey inflowKey = new ResourceChangeKey(itemKey, (short) +1);
+        final ResourceChangeKey outflowKey = new ResourceChangeKey(itemKey, (short) -1);
+        // Only look up this resource; gaps are already represented by zero-filled arrays.
+        this.history.forEachRecent(intervals, MAX_SNAPSHOTS_FOR_CLIENTBOUND_PACKET, (index, changes) -> {
+            inflow[index] += changes.getOrDefault(inflowKey, 0L);
+            outflow[index] += changes.getOrDefault(outflowKey, 0L);
+        });
+        for (int i = 0; i < outflow.length; i++) {
+            outflow[i] = Math.abs(outflow[i]);
         }
-        if (incbuf.hasRemaining()) {
-            incbuf = LongBuffer
-                .allocate(incbuf.position())
-                .put(incbuf.flip().rewind());
-            decbuf = LongBuffer
-                .allocate(incbuf.position())
-                .put(decbuf.flip().rewind());
-        }
-        final Map<ResourceChangeGranularityKey, long[]> generationDetails = new HashMap<>();
-        generationDetails.put(new ResourceChangeGranularityKey(itemKey, (short) +1, desiredGranularity),
-            incbuf.array());
-        generationDetails.put(new ResourceChangeGranularityKey(itemKey, (short) -1, desiredGranularity),
-            decbuf.array());
-        return generationDetails;
+        final Map<ResourceChangeGranularityKey, long[]> result = new HashMap<>();
+        result.put(new ResourceChangeGranularityKey(itemKey, (short) +1, desiredGranularity), inflow);
+        result.put(new ResourceChangeGranularityKey(itemKey, (short) -1, desiredGranularity), outflow);
+        return result;
     }
 
     public Map<ResourceChangeKey, Long> getLastSnapshotAggregated(final int desiredGranularity) {
-        final List<Map<ResourceChangeKey, Long>> aggregatedSnapshots = this.aggregateSnapshotsToGranularity(
-            desiredGranularity);
-        if (aggregatedSnapshots.isEmpty()) {
-            return new HashMap<>();
-        }
-        return aggregatedSnapshots.getLast();
+        final Map<ResourceChangeKey, Long> result = new HashMap<>();
+        // The resource list needs just the newest frame, not the complete graph window.
+        this.history.forEachRecent(this.intervalsPerFrame(desiredGranularity), 1,
+            (index, changes) -> changes.forEach((key, amount) -> result.merge(key, amount, Long::sum)));
+        return result;
     }
 }

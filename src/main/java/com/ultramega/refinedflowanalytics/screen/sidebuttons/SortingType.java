@@ -11,6 +11,8 @@ import java.util.stream.Collectors;
 
 import net.minecraft.resources.ResourceLocation;
 
+import static com.refinedmods.refinedstorage.common.util.IdentifierUtil.createIdentifier;
+
 public enum SortingType {
     NAME,
     QUANTITY;
@@ -41,6 +43,6 @@ public enum SortingType {
     }
 
     public ResourceLocation getResourceLocation() {
-        return ResourceLocation.fromNamespaceAndPath("refinedstorage", "widget/side_button/grid/sorting_type/" + this.toString().toLowerCase(Locale.ROOT));
+        return createIdentifier("widget/side_button/grid/sorting_type/" + this.toString().toLowerCase(Locale.ROOT));
     }
 }

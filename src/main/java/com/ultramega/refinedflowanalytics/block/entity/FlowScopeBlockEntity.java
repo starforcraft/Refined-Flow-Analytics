@@ -19,8 +19,10 @@ import com.refinedmods.refinedstorage.common.support.network.AbstractBaseNetwork
 import com.refinedmods.refinedstorage.common.support.network.SimpleConnectionStrategy;
 import com.refinedmods.refinedstorage.common.util.PlatformUtil;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import javax.annotation.Nullable;
 
 import net.minecraft.core.BlockPos;
@@ -92,6 +94,16 @@ public class FlowScopeBlockEntity extends AbstractBaseNetworkNodeContainerBlockE
             this.snapshotData.recordSnapshot(this.mainNetworkNode.networkChangeListener.flushDeltaChange());
         }
         this.ticker.tick(this.mainNetworkNode);
+    }
+
+    public Set<PlatformResourceKey> getStoredResourceKeys() {
+        final Set<PlatformResourceKey> resources = new HashSet<>();
+        this.getStorageNetworkComponent().ifPresent(storage -> storage.getAll().forEach(entry -> {
+            if (entry.amount() > 0 && entry.resource() instanceof PlatformResourceKey key) {
+                resources.add(key);
+            }
+        }));
+        return resources;
     }
 
     public Map<ResourceChangeKey, Long> getLastSnapshotAggregated(final int granularity) {

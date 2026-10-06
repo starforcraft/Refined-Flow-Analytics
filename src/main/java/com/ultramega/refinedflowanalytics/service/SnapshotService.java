@@ -22,6 +22,16 @@ public class SnapshotService {
     }
 
     public static void execute(final LevelAccessor world, final double x, final double y, final double z, final Entity entity, final int granularity) {
+        execute(world, x, y, z, entity, granularity, false);
+    }
+
+    public static void execute(final LevelAccessor world,
+                               final double x,
+                               final double y,
+                               final double z,
+                               final Entity entity,
+                               final int granularity,
+                               final boolean allStored) {
         RefinedFlowAnalyticsMod.queueServerWork(1, () -> {
             final BlockEntity blockEntity = (world.getBlockEntity(BlockPos.containing(x, y, z)));
             if (blockEntity instanceof FlowScopeBlockEntity flowScope && flowScope.isActive()) {
@@ -35,8 +45,15 @@ public class SnapshotService {
                     itemChange.put((short) +1, snapshotMap.getOrDefault(new ResourceChangeKey(resourceKey, (short) +1), 0L));
                     itemChange.put((short) -1, Math.abs(snapshotMap.getOrDefault(new ResourceChangeKey(resourceKey, (short) -1), 0L)));
                 }
+                if (allStored) {
+                    final var storedResources = flowScope.getStoredResourceKeys();
+                    data.keySet().retainAll(storedResources);
+                    for (final PlatformResourceKey resourceKey : storedResources) {
+                        data.putIfAbsent(resourceKey, Map.of((short) +1, 0L, (short) -1, 0L));
+                    }
+                }
                 if (entity instanceof Player player && player.containerMenu instanceof FlowScopeContainerMenu menu) {
-                    menu.sendMenuStateUpdate(player, 2, "lastSnapshot", data, true);
+                    menu.sendMenuStateUpdate(player, 2, allStored ? "storedSnapshot" : "lastSnapshot", data, true);
                 }
             }
         });

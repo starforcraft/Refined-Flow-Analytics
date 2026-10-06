@@ -7,6 +7,7 @@ import com.ultramega.refinedflowanalytics.registry.ModMenus;
 import com.ultramega.refinedflowanalytics.registry.ModScreens;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.Granularity;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.LineStyle;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.ResourceView;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.SortingDirection;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.SortingType;
 
@@ -105,6 +106,16 @@ public class FlowScopeContainerMenu extends AbstractContainerMenu {
     public void setLineStyle(final LineStyle value) {
         if (this.world.isClientSide) {
             ClientConfig.INSTANCE.setLineStyle(value);
+        }
+    }
+
+    public ResourceView getResourceView() {
+        return this.world.isClientSide ? ClientConfig.INSTANCE.getResourceView() : ResourceView.CHANGED;
+    }
+
+    public void setResourceView(final ResourceView value) {
+        if (this.world.isClientSide) {
+            ClientConfig.INSTANCE.setResourceView(value);
         }
     }
 

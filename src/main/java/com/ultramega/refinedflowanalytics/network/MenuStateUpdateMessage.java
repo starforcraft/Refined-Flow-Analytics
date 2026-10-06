@@ -108,9 +108,11 @@ public record MenuStateUpdateMessage(int elementType, String name, Object elemen
                 if ("detailedFactoryGenerationRequest".equals(message.name)) {
                     final ResourceChangeGranularityKey itemKey = ((ResourceChangeGranularityKey) message.elementState);
                     SnapshotService.executeDetailed(context.player().level(), menu.getX(), menu.getY(), menu.getZ(), context.player(), itemKey.resourceKey(), itemKey.granularity());
-                } else if ("simpleFactoryGenerationRequest".equals(message.name)) {
-                    final int granularity = (int) message.elementState;
-                    SnapshotService.execute(context.player().level(), menu.getX(), menu.getY(), menu.getZ(), context.player(), granularity);
+                } else if (context.flow() == PacketFlow.SERVERBOUND && message.elementType == 4
+                    && ("simpleFactoryGenerationRequest".equals(message.name) || "storedFactoryGenerationRequest".equals(message.name))
+                    && message.elementState instanceof Integer granularity && granularity > 0) {
+                    SnapshotService.execute(context.player().level(), menu.getX(), menu.getY(), menu.getZ(), context.player(),
+                        granularity, "storedFactoryGenerationRequest".equals(message.name));
                 }
                 if (context.flow() == PacketFlow.CLIENTBOUND) {
                     ModScreens.updateMenuState(message);

@@ -2,6 +2,7 @@ package com.ultramega.refinedflowanalytics.config;
 
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.Granularity;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.LineStyle;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.ResourceView;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.SortingDirection;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.SortingType;
 
@@ -17,6 +18,7 @@ public final class ClientConfig {
     private final ModConfigSpec.EnumValue<SortingType> sortingType;
     private final ModConfigSpec.EnumValue<Granularity> granularity;
     private final ModConfigSpec.EnumValue<LineStyle> lineStyle;
+    private final ModConfigSpec.EnumValue<ResourceView> resourceView;
 
     private ClientConfig() {
         final ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -30,6 +32,8 @@ public final class ClientConfig {
             .defineEnum("granularity", Granularity.MINUTE);
         this.lineStyle = builder.comment("Rendering style of the flow graph.")
             .defineEnum("lineStyle", LineStyle.EXACT);
+        this.resourceView = builder.comment("Show changed resources or all resources currently stored in the network.")
+            .defineEnum("resourceView", ResourceView.CHANGED);
         builder.pop();
 
         this.spec = builder.build();
@@ -69,6 +73,14 @@ public final class ClientConfig {
 
     public void setLineStyle(final LineStyle value) {
         this.setValue(this.lineStyle, value);
+    }
+
+    public ResourceView getResourceView() {
+        return this.resourceView.get();
+    }
+
+    public void setResourceView(final ResourceView value) {
+        this.setValue(this.resourceView, value);
     }
 
     private <T extends Enum<T>> void setValue(final ModConfigSpec.EnumValue<T> entry, final T value) {

@@ -7,6 +7,8 @@ import com.ultramega.refinedflowanalytics.screen.components.FlowScopeGraph;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.Granularity;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.GranularitySideButtonWidget;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.LineStyleSideButtonWidget;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.ResourceView;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.ResourceViewSideButtonWidget;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.SortingDirectionSideButtonWidget;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.SortingTypeSideButtonWidget;
 import com.ultramega.refinedflowanalytics.util.TickScheduler;
@@ -114,6 +116,7 @@ public class FlowScopeScreen extends AbstractBaseScreen<FlowScopeContainerMenu> 
 
         this.addSideButton(new SortingDirectionSideButtonWidget(this.getMenu()));
         this.addSideButton(new SortingTypeSideButtonWidget(this.getMenu()));
+        this.addSideButton(new ResourceViewSideButtonWidget(this.getMenu(), this::onResourceViewChanged));
         this.addSideButton(new GranularitySideButtonWidget(this.getMenu(), this::onGranularityChanged));
         this.addSideButton(new LineStyleSideButtonWidget(this.getMenu()));
         this.updateControlVisibility();
@@ -314,8 +317,19 @@ public class FlowScopeScreen extends AbstractBaseScreen<FlowScopeContainerMenu> 
     private void requestSimpleGenerationStats() {
         final Player player = this.getMenu().entity;
         if (player.containerMenu == this.getMenu()) {
-            this.getMenu().sendMenuStateUpdate(player, 4, "simpleFactoryGenerationRequest", this.getMenu().getGranularity().getTickAmount(), false);
+            final String request = this.getMenu().getResourceView() == ResourceView.ALL_STORED
+                ? "storedFactoryGenerationRequest" : "simpleFactoryGenerationRequest";
+            this.getMenu().sendMenuStateUpdate(player, 4, request, this.getMenu().getGranularity().getTickAmount(), false);
         }
+    }
+
+    private void onResourceViewChanged() {
+        this.lastSnapshot = new HashMap<>();
+        this.itemButtons.clear();
+        if (this.scrollbar != null) {
+            this.scrollbar.setOffset(0);
+        }
+        this.requestSimpleGenerationStats();
     }
 
     private void onGranularityChanged() {
@@ -337,7 +351,8 @@ public class FlowScopeScreen extends AbstractBaseScreen<FlowScopeContainerMenu> 
             }
             this.graph.setData(data, this.getMenu().getGranularity());
             this.hasDetailedGenerationData = true;
-        } else if ("lastSnapshot".equals(name)) {
+        } else if (("lastSnapshot".equals(name) && this.getMenu().getResourceView() == ResourceView.CHANGED)
+            || ("storedSnapshot".equals(name) && this.getMenu().getResourceView() == ResourceView.ALL_STORED)) {
             this.lastSnapshot = (Map<PlatformResourceKey, Map<Short, Long>>) elementState;
         }
     }

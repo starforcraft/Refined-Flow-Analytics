@@ -1,7 +1,7 @@
 package com.ultramega.refinedflowanalytics.registry;
 
-import com.ultramega.refinedflowanalytics.block.entity.FlowScopeBlockEntity;
-import com.ultramega.refinedflowanalytics.block.entity.FlowScopeMonitorBlockEntity;
+import com.ultramega.refinedflowanalytics.block.entity.FlowGridBlockEntity;
+import com.ultramega.refinedflowanalytics.block.entity.FlowMonitorBlockEntity;
 
 import com.refinedmods.refinedstorage.neoforge.api.RefinedStorageNeoForgeApi;
 
@@ -20,14 +20,14 @@ import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdenti
 public class ModBlockEntities {
     public static final DeferredRegister<BlockEntityType<?>> REGISTRY = DeferredRegister.create(BuiltInRegistries.BLOCK_ENTITY_TYPE, MOD_ID);
 
-    public static final Supplier<BlockEntityType<FlowScopeBlockEntity>> FLOW_GRID = REGISTRY.register("flow_scope", () -> BlockEntityType.Builder.of(
-        FlowScopeBlockEntity::new,
-        ModBlocks.INSTANCE.getFlowScope().toArray()
+    public static final Supplier<BlockEntityType<FlowGridBlockEntity>> FLOW_GRID = REGISTRY.register("flow_grid", () -> BlockEntityType.Builder.of(
+        FlowGridBlockEntity::new,
+        ModBlocks.INSTANCE.getFlowGrid().toArray()
     ).build(null));
 
-    public static final Supplier<BlockEntityType<FlowScopeMonitorBlockEntity>> FLOW_MONITOR = REGISTRY.register("flow_scope_monitor", () -> BlockEntityType.Builder.of(
-        FlowScopeMonitorBlockEntity::new,
-        ModBlocks.FLOW_SCOPE_MONITOR.get()
+    public static final Supplier<BlockEntityType<FlowMonitorBlockEntity>> FLOW_MONITOR = REGISTRY.register("flow_monitor", () -> BlockEntityType.Builder.of(
+        FlowMonitorBlockEntity::new,
+        ModBlocks.FLOW_MONITOR.get()
     ).build(null));
 
     private ModBlockEntities() {

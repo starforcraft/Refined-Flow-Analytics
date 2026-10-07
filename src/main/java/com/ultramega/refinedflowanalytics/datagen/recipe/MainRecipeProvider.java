@@ -32,7 +32,7 @@ public final class MainRecipeProvider extends RecipeProvider {
     protected void buildRecipes(final RecipeOutput output) {
         final var advancedProcessor = Items.INSTANCE.getProcessor(ProcessorItem.Type.ADVANCED);
 
-        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModBlocks.INSTANCE.getFlowScope().getDefault())
+        ShapedRecipeBuilder.shaped(RecipeCategory.MISC, ModBlocks.INSTANCE.getFlowGrid().getDefault())
             .pattern("PAG")
             .pattern("EMG")
             .pattern("PAG")
@@ -42,17 +42,17 @@ public final class MainRecipeProvider extends RecipeProvider {
             .define('E', Items.INSTANCE.getQuartzEnrichedIron())
             .define('M', Blocks.INSTANCE.getStorageMonitor())
             .unlockedBy("has_advanced_processor", has(advancedProcessor))
-            .save(output, createFlowAnalyticsIdentifier("flow_scope"));
+            .save(output, createFlowAnalyticsIdentifier("flow_grid"));
 
-        ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, ModBlocks.FLOW_SCOPE_MONITOR.get())
+        ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, ModBlocks.FLOW_MONITOR.get())
             .requires(Blocks.INSTANCE.getStorageMonitor())
             .requires(advancedProcessor)
             .unlockedBy("has_storage_monitor", has(Blocks.INSTANCE.getStorageMonitor()))
-            .save(output, createFlowAnalyticsIdentifier("flow_scope_monitor"));
+            .save(output, createFlowAnalyticsIdentifier("flow_monitor"));
 
-        ModBlocks.INSTANCE.getFlowScope().forEach((color, id, block) ->
-            output.accept(this.recipeId(color, "flow_scopes"),
-                RecoloringRecipe.create(ModTags.FLOW_SCOPES, color, block.get()), null));
+        ModBlocks.INSTANCE.getFlowGrid().forEach((color, id, block) ->
+            output.accept(this.recipeId(color, "grids"),
+                RecoloringRecipe.create(ModTags.FLOW_GRIDS, color, block.get()), null));
     }
 
     private ResourceLocation recipeId(final DyeColor color, final String suffix) {

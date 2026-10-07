@@ -16,10 +16,10 @@ public final class CreativeModeTabItems {
         "refined_flow_analytics",
         () -> CreativeModeTab.builder()
             .title(createFlowAnalyticsTranslation("item_group", "refined_flow_analytics"))
-            .icon(() -> new ItemStack(ModBlocks.INSTANCE.getFlowScope().getDefault()))
+            .icon(() -> new ItemStack(ModBlocks.INSTANCE.getFlowGrid().getDefault()))
             .displayItems((parameters, output) -> {
-                ModItems.INSTANCE.getFlowScopes().forEach(item -> output.accept(item.get()));
-                output.accept(ModItems.FLOW_SCOPE_MONITOR.get());
+                ModItems.INSTANCE.getFlowGrids().forEach(item -> output.accept(item.get()));
+                output.accept(ModItems.FLOW_MONITOR.get());
             })
             .build()
     );

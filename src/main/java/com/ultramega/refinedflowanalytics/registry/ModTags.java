@@ -7,7 +7,7 @@ import net.minecraft.world.item.Item;
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsIdentifier;
 
 public final class ModTags {
-    public static final TagKey<Item> FLOW_SCOPES = createTag("flow_scopes");
+    public static final TagKey<Item> FLOW_GRIDS = createTag("flow_grids");
 
     private ModTags() {
     }

@@ -1,8 +1,8 @@
 package com.ultramega.refinedflowanalytics.service;
 
 import com.ultramega.refinedflowanalytics.RefinedFlowAnalyticsMod;
-import com.ultramega.refinedflowanalytics.block.entity.FlowScopeBlockEntity;
-import com.ultramega.refinedflowanalytics.container.FlowScopeContainerMenu;
+import com.ultramega.refinedflowanalytics.block.entity.FlowGridBlockEntity;
+import com.ultramega.refinedflowanalytics.container.FlowGridContainerMenu;
 import com.ultramega.refinedflowanalytics.resource.ResourceChangeGranularityKey;
 import com.ultramega.refinedflowanalytics.resource.ResourceChangeKey;
 
@@ -30,8 +30,8 @@ public class SnapshotService {
                                final boolean allStored) {
         RefinedFlowAnalyticsMod.queueServerWork(1, () -> {
             final BlockEntity blockEntity = (world.getBlockEntity(BlockPos.containing(x, y, z)));
-            if (blockEntity instanceof FlowScopeBlockEntity flowScope && flowScope.isActive()) {
-                final Map<ResourceChangeKey, Long> snapshotMap = flowScope.getLastSnapshotAggregated(granularity);
+            if (blockEntity instanceof FlowGridBlockEntity flowGrid && flowGrid.isActive()) {
+                final Map<ResourceChangeKey, Long> snapshotMap = flowGrid.getLastSnapshotAggregated(granularity);
                 final Map<PlatformResourceKey, Map<Short, Long>> data = new HashMap<>();
 
                 for (final ResourceChangeKey resourceChangeKey : snapshotMap.keySet()) {
@@ -42,13 +42,13 @@ public class SnapshotService {
                     itemChange.put((short) -1, Math.abs(snapshotMap.getOrDefault(new ResourceChangeKey(resourceKey, (short) -1), 0L)));
                 }
                 if (allStored) {
-                    final var storedResources = flowScope.getStoredResourceKeys();
+                    final var storedResources = flowGrid.getStoredResourceKeys();
                     data.keySet().retainAll(storedResources);
                     for (final PlatformResourceKey resourceKey : storedResources) {
                         data.putIfAbsent(resourceKey, Map.of((short) +1, 0L, (short) -1, 0L));
                     }
                 }
-                if (entity instanceof Player player && player.containerMenu instanceof FlowScopeContainerMenu menu) {
+                if (entity instanceof Player player && player.containerMenu instanceof FlowGridContainerMenu menu) {
                     menu.sendMenuStateUpdate(player, 2, allStored ? "storedSnapshot" : "lastSnapshot", data, true);
                 }
             }
@@ -64,9 +64,9 @@ public class SnapshotService {
                                        final int granularity) {
         RefinedFlowAnalyticsMod.queueServerWork(1, () -> {
             final BlockEntity blockEntity = (world.getBlockEntity(BlockPos.containing(x, y, z)));
-            if (blockEntity instanceof FlowScopeBlockEntity flowScope && flowScope.isActive()) {
-                final Map<ResourceChangeGranularityKey, long[]> data = flowScope.getDetailedSnapshot(itemKey, granularity);
-                if (entity instanceof Player player && player.containerMenu instanceof FlowScopeContainerMenu menu) {
+            if (blockEntity instanceof FlowGridBlockEntity flowGrid && flowGrid.isActive()) {
+                final Map<ResourceChangeGranularityKey, long[]> data = flowGrid.getDetailedSnapshot(itemKey, granularity);
+                if (entity instanceof Player player && player.containerMenu instanceof FlowGridContainerMenu menu) {
                     menu.sendMenuStateUpdate(player, 3, "detailedFactoryGeneration", data, true);
                 }
             }

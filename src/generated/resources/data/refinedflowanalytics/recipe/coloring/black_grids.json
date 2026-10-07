@@ -1,0 +1,10 @@
+{
+  "type": "refinedstorage:recoloring",
+  "dye": {
+    "tag": "c:dyes/black"
+  },
+  "ingredient": {
+    "tag": "refinedflowanalytics:flow_grids"
+  },
+  "result": "refinedflowanalytics:black_flow_grid"
+}

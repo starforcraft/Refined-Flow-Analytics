@@ -16,15 +16,15 @@ public class ItemModelProviderImpl extends ItemModelProvider {
 
     @Override
     protected void registerModels() {
-        this.registerFlowScope();
-        this.withExistingParent("flow_scope_monitor", createFlowAnalyticsIdentifier("block/flow_scope_monitor"));
+        this.registerFlowGrid();
+        this.withExistingParent("flow_monitor", createFlowAnalyticsIdentifier("block/flow_monitor"));
     }
 
-    private void registerFlowScope() {
-        final var blocks = ModBlocks.INSTANCE.getFlowScope();
+    private void registerFlowGrid() {
+        final var blocks = ModBlocks.INSTANCE.getFlowGrid();
         blocks.forEach((color, id, block) -> this.withExistingParent(
             id.getPath(),
-            createFlowAnalyticsIdentifier("block/flow_scope/" + color.getName())
+            createFlowAnalyticsIdentifier("block/flow_grid/" + color.getName())
         ));
     }
 }

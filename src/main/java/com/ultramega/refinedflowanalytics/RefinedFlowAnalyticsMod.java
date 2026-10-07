@@ -1,6 +1,6 @@
 package com.ultramega.refinedflowanalytics;
 
-import com.ultramega.refinedflowanalytics.block.FlowScopeMonitorBlock;
+import com.ultramega.refinedflowanalytics.block.FlowMonitorBlock;
 import com.ultramega.refinedflowanalytics.config.ClientConfig;
 import com.ultramega.refinedflowanalytics.config.ServerConfig;
 import com.ultramega.refinedflowanalytics.network.FlowHistoryNetworkComponent;
@@ -62,21 +62,21 @@ public class RefinedFlowAnalyticsMod {
         final DeferredRegister.Blocks blocks = DeferredRegister.createBlocks(MOD_ID);
         final DeferredRegister.Items items = DeferredRegister.createItems(MOD_ID);
 
-        ModBlocks.INSTANCE.getFlowScope().registerBlocks(new RegistryCallback<>() {
+        ModBlocks.INSTANCE.getFlowGrid().registerBlocks(new RegistryCallback<>() {
             @Override
             public <R extends Block> Supplier<R> register(final ResourceLocation id, final Supplier<R> factory) {
                 return blocks.register(id.getPath(), factory);
             }
         });
-        ModBlocks.INSTANCE.getFlowScope().registerItems(new RegistryCallback<>() {
+        ModBlocks.INSTANCE.getFlowGrid().registerItems(new RegistryCallback<>() {
             @Override
             public <R extends Item> Supplier<R> register(final ResourceLocation id, final Supplier<R> factory) {
                 return items.register(id.getPath(), factory);
             }
-        }, ModItems.INSTANCE::addFlowScope);
+        }, ModItems.INSTANCE::addFlowGrid);
 
-        blocks.register("flow_scope_monitor", FlowScopeMonitorBlock::new);
-        items.register("flow_scope_monitor", () -> ModBlocks.FLOW_SCOPE_MONITOR.get().createBlockItem());
+        blocks.register("flow_monitor", FlowMonitorBlock::new);
+        items.register("flow_monitor", () -> ModBlocks.FLOW_MONITOR.get().createBlockItem());
 
         blocks.register(modEventBus);
         items.register(modEventBus);

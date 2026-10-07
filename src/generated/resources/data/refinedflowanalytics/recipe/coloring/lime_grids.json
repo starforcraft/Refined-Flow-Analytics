@@ -1,0 +1,10 @@
+{
+  "type": "refinedstorage:recoloring",
+  "dye": {
+    "tag": "c:dyes/lime"
+  },
+  "ingredient": {
+    "tag": "refinedflowanalytics:flow_grids"
+  },
+  "result": "refinedflowanalytics:lime_flow_grid"
+}

@@ -16,7 +16,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.common.data.ExistingFileHelper;
 
-import static com.ultramega.refinedflowanalytics.registry.ModTags.FLOW_SCOPES;
+import static com.ultramega.refinedflowanalytics.registry.ModTags.FLOW_GRIDS;
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.MOD_ID;
 
 public class ItemTagsProviderImpl extends ItemTagsProvider {
@@ -29,8 +29,8 @@ public class ItemTagsProviderImpl extends ItemTagsProvider {
 
     @Override
     protected void addTags(final HolderLookup.Provider provider) {
-        this.addAllToTag(FLOW_SCOPES,
-            ModBlocks.INSTANCE.getFlowScope().values().stream()
+        this.addAllToTag(FLOW_GRIDS,
+            ModBlocks.INSTANCE.getFlowGrid().values().stream()
                 .map(block -> (Supplier<Item>) block::asItem)
                 .toList());
     }

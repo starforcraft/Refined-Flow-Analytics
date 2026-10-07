@@ -1,6 +1,6 @@
 package com.ultramega.refinedflowanalytics.network;
 
-import com.ultramega.refinedflowanalytics.container.FlowScopeContainerMenu;
+import com.ultramega.refinedflowanalytics.container.FlowGridContainerMenu;
 import com.ultramega.refinedflowanalytics.registry.ModScreens;
 import com.ultramega.refinedflowanalytics.resource.ResourceChangeGranularityKey;
 import com.ultramega.refinedflowanalytics.service.SnapshotService;
@@ -104,7 +104,7 @@ public record MenuStateUpdateMessage(int elementType, String name, Object elemen
             return;
         }
         context.enqueueWork(() -> { //TODO: this is shit
-            if (context.player().containerMenu instanceof FlowScopeContainerMenu menu) {
+            if (context.player().containerMenu instanceof FlowGridContainerMenu menu) {
                 if ("detailedFactoryGenerationRequest".equals(message.name)) {
                     final ResourceChangeGranularityKey itemKey = ((ResourceChangeGranularityKey) message.elementState);
                     SnapshotService.executeDetailed(context.player().level(), menu.getX(), menu.getY(), menu.getZ(), context.player(), itemKey.resourceKey(), itemKey.granularity());

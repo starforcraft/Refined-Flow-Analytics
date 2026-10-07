@@ -17,19 +17,19 @@ import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdenti
 public final class ModItems {
     public static final ModItems INSTANCE = new ModItems();
 
-    public static final DeferredHolder<Item, NetworkNodeBlockItem> FLOW_SCOPE_MONITOR = DeferredHolder.create(
-        Registries.ITEM, createFlowAnalyticsIdentifier("flow_scope_monitor"));
+    public static final DeferredHolder<Item, NetworkNodeBlockItem> FLOW_MONITOR = DeferredHolder.create(
+        Registries.ITEM, createFlowAnalyticsIdentifier("flow_monitor"));
 
-    private final List<Supplier<BaseBlockItem>> allFlowScopes = new ArrayList<>();
+    private final List<Supplier<BaseBlockItem>> allFlowGrids = new ArrayList<>();
 
     private ModItems() {
     }
 
-    public void addFlowScope(final Supplier<BaseBlockItem> supplier) {
-        this.allFlowScopes.add(supplier);
+    public void addFlowGrid(final Supplier<BaseBlockItem> supplier) {
+        this.allFlowGrids.add(supplier);
     }
 
-    public List<Supplier<BaseBlockItem>> getFlowScopes() {
-        return Collections.unmodifiableList(this.allFlowScopes);
+    public List<Supplier<BaseBlockItem>> getFlowGrids() {
+        return Collections.unmodifiableList(this.allFlowGrids);
     }
 }

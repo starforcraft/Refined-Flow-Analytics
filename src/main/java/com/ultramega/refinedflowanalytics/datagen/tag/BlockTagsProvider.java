@@ -8,7 +8,6 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
 
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -33,8 +32,8 @@ public class BlockTagsProvider extends TagsProvider<Block> {
 
     @Override
     protected void addTags(final Provider provider) {
-        this.markAsMineable(ModBlocks.INSTANCE.getFlowScope());
-        this.markAsMineable(ModBlocks.FLOW_SCOPE_MONITOR.get());
+        this.markAsMineable(ModBlocks.INSTANCE.getFlowGrid());
+        this.markAsMineable(ModBlocks.FLOW_MONITOR.get());
     }
 
     private void markAsMineable(final BlockColorMap<?, ?> map) {

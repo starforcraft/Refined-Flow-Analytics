@@ -1,6 +1,6 @@
 package com.ultramega.refinedflowanalytics.screen.sidebuttons;
 
-import com.ultramega.refinedflowanalytics.screen.components.FlowScopeGraph;
+import com.ultramega.refinedflowanalytics.screen.components.FlowGraph;
 
 import java.util.Locale;
 
@@ -9,9 +9,9 @@ import net.minecraft.resources.ResourceLocation;
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsIdentifier;
 
 public enum MonitorFlowText {
-    NET(FlowScopeGraph.NET_GRAPH_COLOR),
-    INFLOW(FlowScopeGraph.PRODUCTION_GRAPH_COLOR),
-    OUTFLOW(FlowScopeGraph.CONSUMPTION_GRAPH_COLOR);
+    NET(FlowGraph.NET_GRAPH_COLOR),
+    INFLOW(FlowGraph.PRODUCTION_GRAPH_COLOR),
+    OUTFLOW(FlowGraph.CONSUMPTION_GRAPH_COLOR);
 
     private final int color;
 

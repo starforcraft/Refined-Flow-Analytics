@@ -1,0 +1,57 @@
+{
+  "variants": {
+    "direction=down_east": {
+      "model": "refinedflowanalytics:block/flow_monitor",
+      "x": 90,
+      "y": -90
+    },
+    "direction=down_north": {
+      "model": "refinedflowanalytics:block/flow_monitor",
+      "x": 90
+    },
+    "direction=down_south": {
+      "model": "refinedflowanalytics:block/flow_monitor",
+      "x": 90,
+      "y": 180
+    },
+    "direction=down_west": {
+      "model": "refinedflowanalytics:block/flow_monitor",
+      "x": 90,
+      "y": 90
+    },
+    "direction=east": {
+      "model": "refinedflowanalytics:block/flow_monitor",
+      "y": 90
+    },
+    "direction=north": {
+      "model": "refinedflowanalytics:block/flow_monitor"
+    },
+    "direction=south": {
+      "model": "refinedflowanalytics:block/flow_monitor",
+      "y": 180
+    },
+    "direction=up_east": {
+      "model": "refinedflowanalytics:block/flow_monitor",
+      "x": -90,
+      "y": -90
+    },
+    "direction=up_north": {
+      "model": "refinedflowanalytics:block/flow_monitor",
+      "x": -90,
+      "y": 180
+    },
+    "direction=up_south": {
+      "model": "refinedflowanalytics:block/flow_monitor",
+      "x": -90
+    },
+    "direction=up_west": {
+      "model": "refinedflowanalytics:block/flow_monitor",
+      "x": -90,
+      "y": 90
+    },
+    "direction=west": {
+      "model": "refinedflowanalytics:block/flow_monitor",
+      "y": 270
+    }
+  }
+}

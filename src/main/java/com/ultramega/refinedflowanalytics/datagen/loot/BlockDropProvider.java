@@ -20,8 +20,8 @@ public final class BlockDropProvider extends BlockLootSubProvider {
 
     @Override
     protected void generate() {
-        ModBlocks.INSTANCE.getFlowScope().forEach((color, id, block) -> this.drop(block.get()));
-        this.drop(ModBlocks.FLOW_SCOPE_MONITOR.get());
+        ModBlocks.INSTANCE.getFlowGrid().forEach((color, id, block) -> this.drop(block.get()));
+        this.drop(ModBlocks.FLOW_MONITOR.get());
     }
 
     private void drop(final Block block) {
@@ -37,8 +37,8 @@ public final class BlockDropProvider extends BlockLootSubProvider {
     @Override
     protected Iterable<Block> getKnownBlocks() {
         final List<Block> blocks = new ArrayList<>();
-        blocks.addAll(ModBlocks.INSTANCE.getFlowScope().values());
-        blocks.add(ModBlocks.FLOW_SCOPE_MONITOR.get());
+        blocks.addAll(ModBlocks.INSTANCE.getFlowGrid().values());
+        blocks.add(ModBlocks.FLOW_MONITOR.get());
         return blocks;
     }
 }

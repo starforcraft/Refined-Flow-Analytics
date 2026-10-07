@@ -8,20 +8,20 @@ public final class ServerConfig { //TODO: change to interface configs
     public static final ServerConfig INSTANCE = new ServerConfig();
 
     private final ModConfigSpec spec;
-    private final ModConfigSpec.LongValue flowScopeEnergyUsage;
-    private final ModConfigSpec.LongValue flowScopeMonitorEnergyUsage;
+    private final ModConfigSpec.LongValue flowGridEnergyUsage;
+    private final ModConfigSpec.LongValue flowMonitorEnergyUsage;
 
     private ServerConfig() {
         final ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
 
-        builder.push("flowScope");
-        this.flowScopeEnergyUsage = builder.comment("Energy consumed per tick by each Flow Scope. Set to 0 to disable energy consumption.")
-            .defineInRange("energyUsage", DefaultEnergyUsage.FLOW_SCOPE, 0L, Long.MAX_VALUE);
+        builder.push("flowGrid");
+        this.flowGridEnergyUsage = builder.comment("Energy consumed per tick by each Flow Grid. Set to 0 to disable energy consumption.")
+            .defineInRange("energyUsage", DefaultEnergyUsage.FLOW_GRID, 0L, Long.MAX_VALUE);
         builder.pop();
 
-        builder.push("flowScopeMonitor");
-        this.flowScopeMonitorEnergyUsage = builder.comment("Energy consumed per tick by each Flow Scope Monitor. Set to 0 to disable energy consumption.")
-            .defineInRange("energyUsage", DefaultEnergyUsage.FLOW_SCOPE_MONITOR, 0L, Long.MAX_VALUE);
+        builder.push("flowMonitor");
+        this.flowMonitorEnergyUsage = builder.comment("Energy consumed per tick by each Flow Monitor. Set to 0 to disable energy consumption.")
+            .defineInRange("energyUsage", DefaultEnergyUsage.FLOW_MONITOR, 0L, Long.MAX_VALUE);
         builder.pop();
 
         this.spec = builder.build();
@@ -31,11 +31,11 @@ public final class ServerConfig { //TODO: change to interface configs
         return this.spec;
     }
 
-    public long getFlowScopeEnergyUsage() {
-        return this.flowScopeEnergyUsage.get();
+    public long getFlowGridEnergyUsage() {
+        return this.flowGridEnergyUsage.get();
     }
 
-    public long getFlowScopeMonitorEnergyUsage() {
-        return this.flowScopeMonitorEnergyUsage.get();
+    public long getFlowMonitorEnergyUsage() {
+        return this.flowMonitorEnergyUsage.get();
     }
 }

@@ -1,7 +1,7 @@
 package com.ultramega.refinedflowanalytics.registry;
 
-import com.ultramega.refinedflowanalytics.container.FlowScopeContainerMenu;
-import com.ultramega.refinedflowanalytics.container.FlowScopeMonitorContainerMenu;
+import com.ultramega.refinedflowanalytics.container.FlowGridContainerMenu;
+import com.ultramega.refinedflowanalytics.container.FlowMonitorContainerMenu;
 
 import com.refinedmods.refinedstorage.common.support.resource.ResourceContainerData;
 
@@ -16,12 +16,12 @@ import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdenti
 public class ModMenus {
     public static final DeferredRegister<MenuType<?>> REGISTRY = DeferredRegister.create(Registries.MENU, MOD_ID);
 
-    public static final DeferredHolder<MenuType<?>, MenuType<FlowScopeContainerMenu>> FLOW_SCOPE_MENU =
-        REGISTRY.register("flow_scope_menu", () -> IMenuTypeExtension.create(FlowScopeContainerMenu::new));
+    public static final DeferredHolder<MenuType<?>, MenuType<FlowGridContainerMenu>> FLOW_GRID_MENU =
+        REGISTRY.register("flow_grid", () -> IMenuTypeExtension.create(FlowGridContainerMenu::new));
 
-    public static final DeferredHolder<MenuType<?>, MenuType<FlowScopeMonitorContainerMenu>> FLOW_SCOPE_MONITOR_MENU =
-        REGISTRY.register("flow_scope_monitor", () -> IMenuTypeExtension.create((id, inventory, buffer) ->
-            new FlowScopeMonitorContainerMenu(id, inventory, ResourceContainerData.STREAM_CODEC.decode(buffer))));
+    public static final DeferredHolder<MenuType<?>, MenuType<FlowMonitorContainerMenu>> FLOW_MONITOR_MENU =
+        REGISTRY.register("flow_monitor", () -> IMenuTypeExtension.create((id, inventory, buffer) ->
+            new FlowMonitorContainerMenu(id, inventory, ResourceContainerData.STREAM_CODEC.decode(buffer))));
 
     private ModMenus() {
     }

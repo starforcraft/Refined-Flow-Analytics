@@ -32,17 +32,17 @@ public final class BlockStateProviderImpl extends BlockStateProvider {
 
     @Override
     protected void registerStatesAndModels() {
-        this.registerFlowScope();
-        this.registerFlowScopeMonitor();
+        this.registerFlowGrid();
+        this.registerFlowMonitor();
     }
 
-    private void registerFlowScope() {
-        ModBlocks.INSTANCE.getFlowScope().forEach((color, id, block) -> this.configureActiveColoredDirectionalBlock(color, block, "flow_scope"));
+    private void registerFlowGrid() {
+        ModBlocks.INSTANCE.getFlowGrid().forEach((color, id, block) -> this.configureActiveColoredDirectionalBlock(color, block, "flow_grid"));
     }
 
-    private void registerFlowScopeMonitor() {
-        final ModelFile monitor = this.modelFile(createFlowAnalyticsIdentifier("block/flow_scope_monitor"));
-        this.getVariantBuilder(ModBlocks.FLOW_SCOPE_MONITOR.get()).forAllStates(state -> {
+    private void registerFlowMonitor() {
+        final ModelFile monitor = this.modelFile(createFlowAnalyticsIdentifier("block/flow_monitor"));
+        this.getVariantBuilder(ModBlocks.FLOW_MONITOR.get()).forAllStates(state -> {
             final ConfiguredModel.Builder<?> model = ConfiguredModel.builder().modelFile(monitor);
             this.addRotationFrontFacingNorth(model, state.getValue(BiDirectionType.INSTANCE.getProperty()));
             return model.build();

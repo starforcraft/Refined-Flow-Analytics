@@ -6,7 +6,7 @@ import java.util.function.Function;
 
 import net.minecraft.resources.ResourceLocation;
 
-public final class MonitorDisplaySideButtonWidget<T extends Enum<T>> extends FlowScopeSideButtonWidget<T> {
+public final class MonitorDisplaySideButtonWidget<T extends Enum<T>> extends FlowSideButtonWidget<T> {
     public MonitorDisplaySideButtonWidget(final String translation,
                                           final ClientProperty<T> property,
                                           final T[] values,

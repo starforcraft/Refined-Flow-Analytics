@@ -1,21 +1,21 @@
 {
   "values": [
-    "refinedflowanalytics:white_flow_scope",
-    "refinedflowanalytics:orange_flow_scope",
-    "refinedflowanalytics:magenta_flow_scope",
-    "refinedflowanalytics:flow_scope",
-    "refinedflowanalytics:yellow_flow_scope",
-    "refinedflowanalytics:lime_flow_scope",
-    "refinedflowanalytics:pink_flow_scope",
-    "refinedflowanalytics:gray_flow_scope",
-    "refinedflowanalytics:light_gray_flow_scope",
-    "refinedflowanalytics:cyan_flow_scope",
-    "refinedflowanalytics:purple_flow_scope",
-    "refinedflowanalytics:blue_flow_scope",
-    "refinedflowanalytics:brown_flow_scope",
-    "refinedflowanalytics:green_flow_scope",
-    "refinedflowanalytics:red_flow_scope",
-    "refinedflowanalytics:black_flow_scope",
-    "refinedflowanalytics:flow_scope_monitor"
+    "refinedflowanalytics:white_flow_grid",
+    "refinedflowanalytics:orange_flow_grid",
+    "refinedflowanalytics:magenta_flow_grid",
+    "refinedflowanalytics:flow_grid",
+    "refinedflowanalytics:yellow_flow_grid",
+    "refinedflowanalytics:lime_flow_grid",
+    "refinedflowanalytics:pink_flow_grid",
+    "refinedflowanalytics:gray_flow_grid",
+    "refinedflowanalytics:light_gray_flow_grid",
+    "refinedflowanalytics:cyan_flow_grid",
+    "refinedflowanalytics:purple_flow_grid",
+    "refinedflowanalytics:blue_flow_grid",
+    "refinedflowanalytics:brown_flow_grid",
+    "refinedflowanalytics:green_flow_grid",
+    "refinedflowanalytics:red_flow_grid",
+    "refinedflowanalytics:black_flow_grid",
+    "refinedflowanalytics:flow_monitor"
   ]
 }

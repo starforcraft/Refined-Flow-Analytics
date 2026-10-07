@@ -23,7 +23,7 @@ public final class ClientConfig {
     private ClientConfig() {
         final ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
 
-        builder.push("flowScope");
+        builder.push("flowGrid");
         this.sortingDirection = builder.comment("Resource sorting direction.") //TODO: switch to .translation
             .defineEnum("sortingDirection", SortingDirection.DESCENDING);
         this.sortingType = builder.comment("Resource sorting criterion.")

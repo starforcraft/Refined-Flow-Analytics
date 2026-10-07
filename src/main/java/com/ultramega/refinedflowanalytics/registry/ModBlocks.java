@@ -1,7 +1,7 @@
 package com.ultramega.refinedflowanalytics.registry;
 
-import com.ultramega.refinedflowanalytics.block.FlowScopeBlock;
-import com.ultramega.refinedflowanalytics.block.FlowScopeMonitorBlock;
+import com.ultramega.refinedflowanalytics.block.FlowGridBlock;
+import com.ultramega.refinedflowanalytics.block.FlowMonitorBlock;
 
 import com.refinedmods.refinedstorage.common.content.BlockColorMap;
 import com.refinedmods.refinedstorage.common.support.BaseBlockItem;
@@ -18,13 +18,13 @@ public final class ModBlocks {
     public static final DyeColor COLOR = DyeColor.LIGHT_BLUE;
     public static final ModBlocks INSTANCE = new ModBlocks();
 
-    public static final DeferredHolder<Block, FlowScopeMonitorBlock> FLOW_SCOPE_MONITOR = DeferredHolder.create(
-        Registries.BLOCK, createFlowAnalyticsIdentifier("flow_scope_monitor"));
+    public static final DeferredHolder<Block, FlowMonitorBlock> FLOW_MONITOR = DeferredHolder.create(
+        Registries.BLOCK, createFlowAnalyticsIdentifier("flow_monitor"));
 
-    private final BlockColorMap<FlowScopeBlock, BaseBlockItem> flowScope = new BlockColorMap<>(
-        FlowScopeBlock::new,
-        createFlowAnalyticsIdentifier("flow_scope"),
-        createFlowAnalyticsTranslation("block", "flow_scope"),
+    private final BlockColorMap<FlowGridBlock, BaseBlockItem> flowGrid = new BlockColorMap<>(
+        FlowGridBlock::new,
+        createFlowAnalyticsIdentifier("flow_grid"),
+        createFlowAnalyticsTranslation("block", "flow_grid"),
         COLOR
     );
 
@@ -32,7 +32,7 @@ public final class ModBlocks {
     private ModBlocks() {
     }
 
-    public BlockColorMap<FlowScopeBlock, BaseBlockItem> getFlowScope() {
-        return this.flowScope;
+    public BlockColorMap<FlowGridBlock, BaseBlockItem> getFlowGrid() {
+        return this.flowGrid;
     }
 }

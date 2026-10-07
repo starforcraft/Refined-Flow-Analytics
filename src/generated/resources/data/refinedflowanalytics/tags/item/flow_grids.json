@@ -1,0 +1,20 @@
+{
+  "values": [
+    "refinedflowanalytics:white_flow_grid",
+    "refinedflowanalytics:orange_flow_grid",
+    "refinedflowanalytics:magenta_flow_grid",
+    "refinedflowanalytics:flow_grid",
+    "refinedflowanalytics:yellow_flow_grid",
+    "refinedflowanalytics:lime_flow_grid",
+    "refinedflowanalytics:pink_flow_grid",
+    "refinedflowanalytics:gray_flow_grid",
+    "refinedflowanalytics:light_gray_flow_grid",
+    "refinedflowanalytics:cyan_flow_grid",
+    "refinedflowanalytics:purple_flow_grid",
+    "refinedflowanalytics:blue_flow_grid",
+    "refinedflowanalytics:brown_flow_grid",
+    "refinedflowanalytics:green_flow_grid",
+    "refinedflowanalytics:red_flow_grid",
+    "refinedflowanalytics:black_flow_grid"
+  ]
+}

@@ -1,6 +1,8 @@
 {
   "item_group.refinedflowanalytics.refined_flow_analytics": "Refined Flow Analytics",
   "block.refinedflowanalytics.flow_scope": "Flow Scope",
+  "block.refinedflowanalytics.flow_scope_monitor": "Flow Scope Monitor",
+  "item.refinedflowanalytics.flow_scope_monitor.help": "Displays the selected resource's flow. Right click to configure.",
   "gui.refinedflowanalytics.flow_scope.search": "Search",
   "gui.refinedflowanalytics.flow_scope.sorting_direction": "Sorting direction",
   "gui.refinedflowanalytics.flow_scope.sorting_type": "Sorting Type",
@@ -31,5 +33,15 @@
   "gui.refinedflowanalytics.flow_scope.flow_between": "%1$s - %2$s",
   "gui.refinedflowanalytics.flow_scope.inflow_value": "Inflow:  +%s",
   "gui.refinedflowanalytics.flow_scope.outflow_value": "Outflow: -%s",
-  "gui.refinedflowanalytics.flow_scope.netflow_value": "Netflow: %s"
+  "gui.refinedflowanalytics.flow_scope.netflow_value": "Netflow: %s",
+  "gui.refinedflowanalytics.flow_scope_monitor.net": "Net: %2$s%1$s%3$s",
+  "gui.refinedflowanalytics.flow_scope.item_visibility": "Item display visibility",
+  "gui.refinedflowanalytics.flow_scope.item_visibility.show": "Show item",
+  "gui.refinedflowanalytics.flow_scope.item_visibility.hide": "Hide item",
+  "gui.refinedflowanalytics.flow_scope.flow_text": "Monitor flow text",
+  "gui.refinedflowanalytics.flow_scope.flow_text.net": "Net flow",
+  "gui.refinedflowanalytics.flow_scope.flow_text.inflow": "Inflow",
+  "gui.refinedflowanalytics.flow_scope.flow_text.outflow": "Outflow",
+  "gui.refinedflowanalytics.flow_scope_monitor.inflow": "Inflow: %2$s%1$s%3$s",
+  "gui.refinedflowanalytics.flow_scope_monitor.outflow": "Outflow: %2$s%1$s%3$s"
 }

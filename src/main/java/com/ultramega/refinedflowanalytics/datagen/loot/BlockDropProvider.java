@@ -2,6 +2,8 @@ package com.ultramega.refinedflowanalytics.datagen.loot;
 
 import com.ultramega.refinedflowanalytics.registry.ModBlocks;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import net.minecraft.core.HolderLookup;
@@ -19,6 +21,7 @@ public final class BlockDropProvider extends BlockLootSubProvider {
     @Override
     protected void generate() {
         ModBlocks.INSTANCE.getFlowScope().forEach((color, id, block) -> this.drop(block.get()));
+        this.drop(ModBlocks.FLOW_SCOPE_MONITOR.get());
     }
 
     private void drop(final Block block) {
@@ -33,7 +36,9 @@ public final class BlockDropProvider extends BlockLootSubProvider {
 
     @Override
     protected Iterable<Block> getKnownBlocks() {
-        return ModBlocks.INSTANCE.getFlowScope().values().stream()
-            .map(block -> (Block) block).toList();
+        final List<Block> blocks = new ArrayList<>();
+        blocks.addAll(ModBlocks.INSTANCE.getFlowScope().values());
+        blocks.add(ModBlocks.FLOW_SCOPE_MONITOR.get());
+        return blocks;
     }
 }

@@ -12,6 +12,10 @@ repositories {
             includeGroup("com.refinedmods.refinedstorage")
         }
     }
+    maven {
+        name = "JEI"
+        url = uri("https://maven.blamejared.com/")
+    }
 }
 
 version = mod_version
@@ -74,6 +78,10 @@ configurations {
 
 dependencies {
     api "com.refinedmods.refinedstorage:refinedstorage-neoforge:${refinedstorage_version}"
+
+    runtimeOnly("mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}")
+    compileOnlyApi("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}")
+    compileOnlyApi("mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}")
 }
 
 publishMods {

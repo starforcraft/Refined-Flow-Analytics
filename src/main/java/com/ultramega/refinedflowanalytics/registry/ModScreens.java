@@ -1,12 +1,15 @@
 package com.ultramega.refinedflowanalytics.registry;
 
 import com.ultramega.refinedflowanalytics.network.MenuStateUpdateMessage;
+import com.ultramega.refinedflowanalytics.screen.FlowScopeMonitorRenderer;
+import com.ultramega.refinedflowanalytics.screen.FlowScopeMonitorScreen;
 import com.ultramega.refinedflowanalytics.screen.FlowScopeScreen;
 
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.MOD_ID;
@@ -19,6 +22,12 @@ public class ModScreens {
     @SubscribeEvent
     public static void clientLoad(final RegisterMenuScreensEvent event) {
         event.register(ModMenus.FLOW_SCOPE_MENU.get(), FlowScopeScreen::new);
+        event.register(ModMenus.FLOW_SCOPE_MONITOR_MENU.get(), FlowScopeMonitorScreen::new);
+    }
+
+    @SubscribeEvent
+    public static void registerRenderers(final EntityRenderersEvent.RegisterRenderers event) {
+        event.registerBlockEntityRenderer(ModBlockEntities.FLOW_MONITOR.get(), context -> new FlowScopeMonitorRenderer());
     }
 
     public static void updateMenuState(final MenuStateUpdateMessage message) {

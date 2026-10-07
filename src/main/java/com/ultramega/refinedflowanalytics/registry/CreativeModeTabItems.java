@@ -19,6 +19,7 @@ public final class CreativeModeTabItems {
             .icon(() -> new ItemStack(ModBlocks.INSTANCE.getFlowScope().getDefault()))
             .displayItems((parameters, output) -> {
                 ModItems.INSTANCE.getFlowScopes().forEach(item -> output.accept(item.get()));
+                output.accept(ModItems.FLOW_SCOPE_MONITOR.get());
             })
             .build()
     );

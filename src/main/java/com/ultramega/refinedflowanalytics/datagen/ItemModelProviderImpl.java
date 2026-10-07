@@ -17,6 +17,7 @@ public class ItemModelProviderImpl extends ItemModelProvider {
     @Override
     protected void registerModels() {
         this.registerFlowScope();
+        this.withExistingParent("flow_scope_monitor", createFlowAnalyticsIdentifier("block/flow_scope_monitor"));
     }
 
     private void registerFlowScope() {

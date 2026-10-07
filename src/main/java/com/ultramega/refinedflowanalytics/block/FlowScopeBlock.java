@@ -23,11 +23,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class FlowScopeBlock extends AbstractGridBlock<FlowScopeBlock, BaseBlockItem> implements BlockItemProvider<BaseBlockItem> {
-//    public static final IntegerProperty SORT_TYPE = IntegerProperty.create("sort_type", 0, 1); //TODO: why is this an integerproperty?
-//    public static final IntegerProperty SORT_DIRECTION = IntegerProperty.create("sort_direction", 0, 1);
-//    public static final IntegerProperty GRANULARITY = IntegerProperty.create("granularity", 0, 3);
-
-    private static final AbstractBlockEntityTicker<FlowScopeBlockEntity> TICKER = new NetworkNodeBlockEntityTicker<>(ModBlockEntities.FLOW_SCOPE, ACTIVE);
+    private static final AbstractBlockEntityTicker<FlowScopeBlockEntity> TICKER = new NetworkNodeBlockEntityTicker<>(ModBlockEntities.FLOW_GRID, ACTIVE);
 
     public FlowScopeBlock(final DyeColor color, final MutableComponent name) {
         super(name, color);
@@ -41,14 +37,6 @@ public class FlowScopeBlock extends AbstractGridBlock<FlowScopeBlock, BaseBlockI
     @Override
     public BlockEntity newBlockEntity(final BlockPos pos, final BlockState state) {
         return new FlowScopeBlockEntity(pos, state);
-    }
-
-    // TODO: what is this? Is this required?
-    @Override
-    public boolean triggerEvent(final BlockState state, final Level level, final BlockPos pos, final int eventId, final int eventParam) {
-        final boolean handled = super.triggerEvent(state, level, pos, eventId, eventParam);
-        final BlockEntity blockEntity = level.getBlockEntity(pos);
-        return (blockEntity != null && blockEntity.triggerEvent(eventId, eventParam)) || handled;
     }
 
     @Override

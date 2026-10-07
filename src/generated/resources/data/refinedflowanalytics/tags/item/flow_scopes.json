@@ -1,0 +1,20 @@
+{
+  "values": [
+    "refinedflowanalytics:white_flow_scope",
+    "refinedflowanalytics:orange_flow_scope",
+    "refinedflowanalytics:magenta_flow_scope",
+    "refinedflowanalytics:flow_scope",
+    "refinedflowanalytics:yellow_flow_scope",
+    "refinedflowanalytics:lime_flow_scope",
+    "refinedflowanalytics:pink_flow_scope",
+    "refinedflowanalytics:gray_flow_scope",
+    "refinedflowanalytics:light_gray_flow_scope",
+    "refinedflowanalytics:cyan_flow_scope",
+    "refinedflowanalytics:purple_flow_scope",
+    "refinedflowanalytics:blue_flow_scope",
+    "refinedflowanalytics:brown_flow_scope",
+    "refinedflowanalytics:green_flow_scope",
+    "refinedflowanalytics:red_flow_scope",
+    "refinedflowanalytics:black_flow_scope"
+  ]
+}

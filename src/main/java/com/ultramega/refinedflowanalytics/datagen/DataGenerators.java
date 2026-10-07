@@ -2,6 +2,8 @@ package com.ultramega.refinedflowanalytics.datagen;
 
 import com.ultramega.refinedflowanalytics.datagen.loot.LootTableProviderImpl;
 import com.ultramega.refinedflowanalytics.datagen.recipe.MainRecipeProvider;
+import com.ultramega.refinedflowanalytics.datagen.tag.BlockTagsProvider;
+import com.ultramega.refinedflowanalytics.datagen.tag.ItemTagsProviderImpl;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -28,6 +30,7 @@ public final class DataGenerators {
         registerItemModelProviders(e.getGenerator(), e.getExistingFileHelper());
         registerRecipeProviders(e.getGenerator(), e.getLookupProvider());
         registerLootTableProviders(e.getGenerator(), e.getLookupProvider());
+        registerTagProviders(e.getGenerator(), e.getLookupProvider(), e.getExistingFileHelper());
     }
 
     private static void registerBlockStateProviders(final DataGenerator generator,
@@ -58,5 +61,20 @@ public final class DataGenerators {
                                                 final CompletableFuture<HolderLookup.Provider> provider) {
         final PackGenerator mainPack = generator.getVanillaPack(true);
         mainPack.addProvider(output -> new MainRecipeProvider(output, provider));
+    }
+
+    private static void registerTagProviders(final DataGenerator generator,
+                                             final CompletableFuture<HolderLookup.Provider> lookupProvider,
+                                             final ExistingFileHelper existingFileHelper) {
+        final PackGenerator mainPack = generator.getVanillaPack(true);
+        final BlockTagsProvider blockTagsProvider = mainPack.addProvider(
+            output -> new BlockTagsProvider(output, lookupProvider, existingFileHelper)
+        );
+        mainPack.addProvider(output -> new ItemTagsProviderImpl(
+            output,
+            lookupProvider,
+            blockTagsProvider,
+            existingFileHelper
+        ));
     }
 }

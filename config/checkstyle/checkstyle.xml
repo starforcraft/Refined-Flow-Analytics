@@ -88,7 +88,6 @@
         <module name="MethodCount"/>
         <module name="MethodLength"/>
         <module name="OuterTypeNumber"/>
-        <module name="RecordComponentNumber"/>
         <module name="EmptyForInitializerPad"/>
         <module name="EmptyForIteratorPad"/>
         <module name="NoWhitespaceAfter"/>

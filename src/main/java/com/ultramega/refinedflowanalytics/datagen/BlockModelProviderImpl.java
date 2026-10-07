@@ -36,6 +36,7 @@ public class BlockModelProviderImpl extends BlockModelProvider {
     @Override
     protected void registerModels() {
         this.registerRightLeftBackFrontTopModel(ModBlocks.INSTANCE.getFlowScope(), "flow_scope");
+        this.withExistingParent("block/flow_scope_monitor", createIdentifier("block/storage_monitor"));
     }
 
     private void registerRightLeftBackFrontTopModel(final BlockColorMap<?, ?> blockMap, final String name) {

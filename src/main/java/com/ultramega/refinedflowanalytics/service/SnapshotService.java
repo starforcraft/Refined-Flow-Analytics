@@ -21,10 +21,6 @@ public class SnapshotService {
     private SnapshotService() {
     }
 
-    public static void execute(final LevelAccessor world, final double x, final double y, final double z, final Entity entity, final int granularity) {
-        execute(world, x, y, z, entity, granularity, false);
-    }
-
     public static void execute(final LevelAccessor world,
                                final double x,
                                final double y,

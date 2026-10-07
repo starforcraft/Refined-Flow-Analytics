@@ -1,5 +1,6 @@
 package com.ultramega.refinedflowanalytics;
 
+import com.ultramega.refinedflowanalytics.block.FlowScopeMonitorBlock;
 import com.ultramega.refinedflowanalytics.config.ClientConfig;
 import com.ultramega.refinedflowanalytics.network.MenuStateUpdateMessage;
 import com.ultramega.refinedflowanalytics.registry.CreativeModeTabItems;
@@ -50,28 +51,25 @@ public class RefinedFlowAnalyticsMod {
         ModMenus.REGISTRY.register(modEventBus);
     }
 
-    public static void queueServerWork(final int tick, final Runnable action) {
-        if (Thread.currentThread().getThreadGroup() == SidedThreadGroups.SERVER) {
-            WORK_QUEUE.add(new Tuple<>(action, tick));
-        }
-    }
-
     private void registerBlocksAndItems(final IEventBus modEventBus) {
         final DeferredRegister.Blocks blocks = DeferredRegister.createBlocks(MOD_ID);
         final DeferredRegister.Items items = DeferredRegister.createItems(MOD_ID);
 
-        ModBlocks.INSTANCE.getFlowScope().registerBlocks(new RegistryCallback<Block>() {
+        ModBlocks.INSTANCE.getFlowScope().registerBlocks(new RegistryCallback<>() {
             @Override
             public <R extends Block> Supplier<R> register(final ResourceLocation id, final Supplier<R> factory) {
                 return blocks.register(id.getPath(), factory);
             }
         });
-        ModBlocks.INSTANCE.getFlowScope().registerItems(new RegistryCallback<Item>() {
+        ModBlocks.INSTANCE.getFlowScope().registerItems(new RegistryCallback<>() {
             @Override
             public <R extends Item> Supplier<R> register(final ResourceLocation id, final Supplier<R> factory) {
                 return items.register(id.getPath(), factory);
             }
         }, ModItems.INSTANCE::addFlowScope);
+
+        blocks.register("flow_scope_monitor", FlowScopeMonitorBlock::new);
+        items.register("flow_scope_monitor", () -> ModBlocks.FLOW_SCOPE_MONITOR.get().createBlockItem());
 
         blocks.register(modEventBus);
         items.register(modEventBus);
@@ -80,6 +78,12 @@ public class RefinedFlowAnalyticsMod {
     private void registerNetworking(final RegisterPayloadHandlersEvent event) {
         final PayloadRegistrar registrar = event.registrar(MOD_ID);
         registrar.playBidirectional(MenuStateUpdateMessage.TYPE, MenuStateUpdateMessage.STREAM_CODEC, MenuStateUpdateMessage::handleMenuState);
+    }
+
+    public static void queueServerWork(final int tick, final Runnable action) {
+        if (Thread.currentThread().getThreadGroup() == SidedThreadGroups.SERVER) {
+            WORK_QUEUE.add(new Tuple<>(action, tick));
+        }
     }
 
     @SubscribeEvent

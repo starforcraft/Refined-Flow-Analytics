@@ -16,6 +16,7 @@ import net.minecraft.data.recipes.RecipeCategory;
 import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.RecipeProvider;
 import net.minecraft.data.recipes.ShapedRecipeBuilder;
+import net.minecraft.data.recipes.ShapelessRecipeBuilder;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.DyeColor;
 import net.neoforged.neoforge.common.Tags;
@@ -42,6 +43,12 @@ public final class MainRecipeProvider extends RecipeProvider {
             .define('M', Blocks.INSTANCE.getStorageMonitor())
             .unlockedBy("has_advanced_processor", has(advancedProcessor))
             .save(output, createFlowAnalyticsIdentifier("flow_scope"));
+
+        ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, ModBlocks.FLOW_SCOPE_MONITOR.get())
+            .requires(Blocks.INSTANCE.getStorageMonitor())
+            .requires(advancedProcessor)
+            .unlockedBy("has_storage_monitor", has(Blocks.INSTANCE.getStorageMonitor()))
+            .save(output, createFlowAnalyticsIdentifier("flow_scope_monitor"));
 
         ModBlocks.INSTANCE.getFlowScope().forEach((color, id, block) ->
             output.accept(this.recipeId(color, "flow_scopes"),

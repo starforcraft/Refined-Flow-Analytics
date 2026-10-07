@@ -15,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -158,6 +159,30 @@ public class FlowSnapshotData extends SavedData {
 
     public List<Map<ResourceChangeKey, Long>> getSnapshots() {
         return this.history.asList();
+    }
+
+    public int getRecordedIntervals() {
+        return this.history.size();
+    }
+
+    public void copyToMonitor(final FlowMonitorHistory target, final Predicate<PlatformResourceKey> matches) {
+        for (final int seconds : FlowMonitorHistory.getIntervals()) {
+            final int frames = this.history.frameCount(seconds, FlowMonitorHistory.CAPACITY);
+            final long[] inflow = new long[frames];
+            final long[] outflow = new long[frames];
+            this.history.forEachRecent(seconds, FlowMonitorHistory.CAPACITY, (index, changes) ->
+                changes.forEach((key, amount) -> {
+                    if (matches.test(key.resourceKey())) {
+                        if (key.sign() > 0) {
+                            inflow[index] += Math.abs(amount);
+                        } else {
+                            outflow[index] += Math.abs(amount);
+                        }
+                    }
+                }));
+            // Frames end at the last recorded grid snapshot. New monitor samples follow that boundary.
+            target.loadFrames(seconds, inflow, outflow);
+        }
     }
 
     private int intervalsPerFrame(final int desiredGranularity) {

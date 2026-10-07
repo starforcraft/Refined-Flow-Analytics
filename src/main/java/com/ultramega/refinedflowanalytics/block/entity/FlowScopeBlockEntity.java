@@ -40,7 +40,8 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsTranslation;
 
-public class FlowScopeBlockEntity extends AbstractBaseNetworkNodeContainerBlockEntity<FlowScopeBlockEntity.FlowScopeNetworkNode> implements ExtendedMenuProvider<BlockPos> {
+public class FlowScopeBlockEntity extends AbstractBaseNetworkNodeContainerBlockEntity<FlowScopeBlockEntity.FlowScopeNetworkNode>
+    implements ExtendedMenuProvider<BlockPos> {
     private static final String FACTORY_ID_TAG = "FactoryId";
 
     public int tagFactoryId;
@@ -49,7 +50,7 @@ public class FlowScopeBlockEntity extends AbstractBaseNetworkNodeContainerBlockE
     private FlowSnapshotData snapshotData;
 
     public FlowScopeBlockEntity(final BlockPos position, final BlockState state) {
-        super(ModBlockEntities.FLOW_SCOPE.get(), position, state, new FlowScopeNetworkNode(100));
+        super(ModBlockEntities.FLOW_GRID.get(), position, state, new FlowScopeNetworkNode(100));
         this.setFactoryId();
     }
 
@@ -58,6 +59,7 @@ public class FlowScopeBlockEntity extends AbstractBaseNetworkNodeContainerBlockE
         super.onLoad();
         if (this.level != null && !this.level.isClientSide) {
             this.snapshotData = FlowSnapshotData.get((ServerLevel) this.getLevel(), this.tagFactoryId);
+            this.mainNetworkNode.snapshotData = this.snapshotData;
             this.saveScheduler = new TickScheduler(this.snapshotData.dataGranularity);
         }
     }
@@ -158,7 +160,7 @@ public class FlowScopeBlockEntity extends AbstractBaseNetworkNodeContainerBlockE
 
     @Override
     public Component getName() {
-        return createFlowAnalyticsTranslation("block", "flow_scope");
+        return this.overrideName(createFlowAnalyticsTranslation("block", "flow_scope"));
     }
 
     @Override
@@ -168,10 +170,18 @@ public class FlowScopeBlockEntity extends AbstractBaseNetworkNodeContainerBlockE
 
     public static class FlowScopeNetworkNode extends SimpleNetworkNode {
         @Nullable
+        private FlowSnapshotData snapshotData;
+
+        @Nullable
         private FlowScopeStorageListener networkChangeListener;
 
         public FlowScopeNetworkNode(final long energyUsage) {
             super(energyUsage);
+        }
+
+        @Nullable
+        public FlowSnapshotData getSnapshotData() {
+            return this.snapshotData;
         }
 
         @Override

@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
 import javax.annotation.Nullable;
 
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -34,12 +33,9 @@ import org.joml.Vector2i;
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsTranslation;
 
 public class FlowScopeGraph {
-    private static final int HEIGHT = 95;
-    private static final int WIDTH = 200;
-
-    private static final int PRODUCTION_GRAPH_COLOR = 0xff63cf78;
-    private static final int CONSUMPTION_GRAPH_COLOR = 0xffef6b73;
-    private static final int NET_GRAPH_COLOR = 0xff66ddff;
+    public static final int PRODUCTION_GRAPH_COLOR = 0xff63cf78;
+    public static final int CONSUMPTION_GRAPH_COLOR = 0xffef6b73;
+    public static final int NET_GRAPH_COLOR = 0xff66ddff;
     private static final double NET_DASH_LENGTH = 5;
     private static final double NET_DASH_GAP = 3;
     private static final int PRODUCTION_AVERAGE_COLOR = 0xff427a49;
@@ -47,12 +43,16 @@ public class FlowScopeGraph {
     private static final int ZERO_LINE_COLOR = 0xffa0a0a0;
     private static final int VERTICAL_PADDING = 3;
 
+    private static final int HEIGHT = 95;
+    private static final int WIDTH = 200;
+
     public LineStyle lineStyle = LineStyle.BLOCKY;
 
     private int left = 0;
     private int bottom = 0;
     private long maxValue = 1;
     private int pointsAmount = 0;
+    private int minimumVisibleSamples = 0;
 
     private PlatformResourceKey itemKey;
     private Granularity granularity;
@@ -179,34 +179,39 @@ public class FlowScopeGraph {
         }
     }
 
-    public void drawGraph(final GuiGraphics graphics, final List<Vector2d> points, final int thickness, final int color) {
-        this.getPairStream(points)
-            .forEach(p -> this.drawLine(graphics, p.prev.x, p.prev.y, p.cur.x, p.cur.y, color, thickness, this.lineStyle));
+    private LineDrawer guiLines(final GuiGraphics graphics) {
+        return (x1, y1, x2, y2, color, thickness, style) -> this.drawLine(graphics, x1, y1, x2, y2, color, thickness, style);
     }
 
-    public void drawGraph(final GuiGraphics graphics, final long[] arr, final int thickness, final int color) {
-        this.drawGraph(graphics, this.getGuiXYArrayD(arr), thickness, color);
+    public void drawGraph(final LineDrawer lines, final List<Vector2d> points, final int thickness, final int color) {
+        this.getPairStream(points).forEach(p -> lines.draw(p.prev.x, p.prev.y, p.cur.x, p.cur.y, color, thickness, this.lineStyle));
+    }
+
+    public void drawGraph(final LineDrawer lines, final long[] arr, final int thickness, final int color) {
+        this.drawGraph(lines, this.getGuiXYArrayD(arr), thickness, color);
     }
 
     public void drawGraphs(final GuiGraphics graphics) {
-        // Whole-window averages stay fixed while the user inspects a selection.
-        if (this.pointsAmount > 0) {
-            this.drawReferenceLine(graphics, this.getAvgProduction(), PRODUCTION_AVERAGE_COLOR);
-            this.drawReferenceLine(graphics, -this.getAvgConsumption(), CONSUMPTION_AVERAGE_COLOR);
-        }
-        this.drawReferenceLine(graphics, 0, ZERO_LINE_COLOR);
-        this.drawGraph(graphics, this.productionData, 1, PRODUCTION_GRAPH_COLOR);
-        this.drawGraph(graphics, IntStream.range(0, this.consumptionData.length)
-            .mapToObj(i -> new Vector2d(this.getGuiX(i), this.getGuiY(-((double) this.consumptionData[i]))))
-            .toList(), 1, CONSUMPTION_GRAPH_COLOR);
-        // Net is signed inflow minus outflow and remains visible above the other curves.
-        this.drawNetGraph(graphics);
+        this.drawGraphs(this.guiLines(graphics));
     }
 
-    private void drawNetGraph(final GuiGraphics graphics) {
+    public void drawGraphs(final LineDrawer lines) {
+        if (this.pointsAmount > 0) {
+            this.drawReferenceLine(lines, this.getAvgProduction(), PRODUCTION_AVERAGE_COLOR);
+            this.drawReferenceLine(lines, -this.getAvgConsumption(), CONSUMPTION_AVERAGE_COLOR);
+        }
+        this.drawReferenceLine(lines, 0, ZERO_LINE_COLOR);
+        this.drawGraph(lines, this.productionData, 1, PRODUCTION_GRAPH_COLOR);
+        this.drawGraph(lines, IntStream.range(0, this.consumptionData.length)
+            .mapToObj(i -> new Vector2d(this.getGuiX(i), this.getGuiY(-((double) this.consumptionData[i]))))
+            .toList(), 1, CONSUMPTION_GRAPH_COLOR);
+        this.drawNetGraph(lines);
+    }
+
+    private void drawNetGraph(final LineDrawer lines) {
         final List<Vector2d> samples = this.getGuiXYArrayD(this.netData);
         if (samples.size() <= 1) {
-            this.drawGraph(graphics, samples, 1, NET_GRAPH_COLOR);
+            this.drawGraph(lines, samples, 1, NET_GRAPH_COLOR);
             return;
         }
         final List<Vector2d> path = this.createGraphPath(samples);
@@ -242,10 +247,11 @@ public class FlowScopeGraph {
                 while (position < limit - 1.0e-6) {
                     final double amount = Math.min(remaining, limit - position);
                     if (visible || !overlapping) {
-                        this.drawLine(graphics,
+                        lines.draw(
                             start.x + dx * position / length, start.y + dy * position / length,
                             start.x + dx * (position + amount) / length, start.y + dy * (position + amount) / length,
-                            NET_GRAPH_COLOR, 1, this.lineStyle);
+                            NET_GRAPH_COLOR, 1, this.lineStyle
+                        );
                     }
                     position += amount;
                     remaining -= amount;
@@ -296,9 +302,9 @@ public class FlowScopeGraph {
         return rangeStart < rangeEnd ? new double[]{rangeStart, rangeEnd} : null;
     }
 
-    private void drawReferenceLine(final GuiGraphics graphics, final double value, final int color) {
+    private void drawReferenceLine(final LineDrawer lines, final double value, final int color) {
         final double y = this.getGuiY(value);
-        this.drawLine(graphics, this.left, y, this.left + WIDTH, y, color, 1, LineStyle.EXACT);
+        lines.draw(this.left, y, this.left + WIDTH, y, color, 1, LineStyle.EXACT);
     }
 
     public ResourceRendering getResourceRendering() {
@@ -313,8 +319,17 @@ public class FlowScopeGraph {
         this.getResourceRendering().render(this.itemKey, graphics, x, y);
     }
 
+    public void setMinimumVisibleSamples(final int samples) {
+        if (samples < 0) {
+            throw new IllegalArgumentException("Visible sample count must not be negative");
+        }
+        this.minimumVisibleSamples = samples;
+    }
+
     private double getGuiX(final double index) {
-        return this.left + (this.pointsAmount <= 1 ? WIDTH / 2.0 : WIDTH * index / (this.pointsAmount - 1.0));
+        final int visibleSamples = Math.max(this.pointsAmount, this.minimumVisibleSamples);
+        final double visibleIndex = index + visibleSamples - this.pointsAmount;
+        return this.left + (visibleSamples <= 1 ? WIDTH / 2.0 : WIDTH * visibleIndex / (visibleSamples - 1.0));
     }
 
     public double getGuiY(final double value) {
@@ -326,7 +341,10 @@ public class FlowScopeGraph {
         if (this.pointsAmount <= 1) {
             return 0;
         }
-        return (int) Math.round(Math.clamp((mouseX - this.left) / WIDTH, 0.0, 1.0) * (this.pointsAmount - 1));
+        final int visibleSamples = Math.max(this.pointsAmount, this.minimumVisibleSamples);
+        final double index = (mouseX - this.left) / WIDTH * (visibleSamples - 1)
+            - (visibleSamples - this.pointsAmount);
+        return (int) Math.round(Math.clamp(index, 0.0, this.pointsAmount - 1.0));
     }
 
     public List<Vector2d> getGuiXYArrayD(final long[] arr) {
@@ -436,5 +454,10 @@ public class FlowScopeGraph {
     }
 
     private record PointPair(Vector2d prev, Vector2d cur) {
+    }
+
+    @FunctionalInterface
+    public interface LineDrawer {
+        void draw(double x1, double y1, double x2, double y2, int color, int thickness, LineStyle style);
     }
 }

@@ -15,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Predicate;
 
 import net.minecraft.core.HolderLookup;
@@ -28,14 +29,16 @@ import net.minecraft.world.level.saveddata.SavedData;
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.MOD_ID;
 
 public class FlowSnapshotData extends SavedData {
-    private static final int FORMAT_VERSION = 2;
+    private static final int FORMAT_VERSION = 3;
     private static final int DATA_GRANULARITY = 20;
     // Seven days of active recording, measured in snapshots rather than ticks
     private static final int MAX_COLLECTION_SNAPSHOTS = 20 * 60 * 60 * 24 * 7 / DATA_GRANULARITY;
     private static final int MAX_SNAPSHOTS_FOR_CLIENTBOUND_PACKET = 209;
 
-    public final int dataGranularity = DATA_GRANULARITY;
     private final SparseSnapshotHistory<ResourceChangeKey> history = new SparseSnapshotHistory<>(MAX_COLLECTION_SNAPSHOTS);
+    private final Map<ResourceChangeKey, Long> pending = new HashMap<>();
+    private int pendingTicks;
+    private long revision;
 
     public static FlowSnapshotData load(final CompoundTag tag, final HolderLookup.Provider provider) {
         final FlowSnapshotData data = new FlowSnapshotData();
@@ -66,6 +69,8 @@ public class FlowSnapshotData extends SavedData {
             cursor = offset + 1;
         }
         data.history.advanceEmpty(intervals - cursor);
+        data.pending.putAll(readDeltas(tag.getCompound("pending"), dictionary, resolvedKeys));
+        data.pendingTicks = Math.clamp(tag.getInt("pending_ticks"), 0, DATA_GRANULARITY - 1);
         if (retainedStart > 0) {
             data.setDirty();
         }
@@ -96,16 +101,14 @@ public class FlowSnapshotData extends SavedData {
         return deltas;
     }
 
-    public static FlowSnapshotData get(final ServerLevel level, final int networkId) {
-        final SavedData.Factory<FlowSnapshotData> factory = new SavedData.Factory<>(
-            FlowSnapshotData::new, FlowSnapshotData::load);
-        final String name = MOD_ID + "_snapshots/" + networkId;
-        return level.getDataStorage().computeIfAbsent(factory, name);
+    public static FlowSnapshotData get(final ServerLevel level, final UUID networkId) {
+        final SavedData.Factory<FlowSnapshotData> factory = new SavedData.Factory<>(FlowSnapshotData::new, FlowSnapshotData::load);
+        final String name = MOD_ID + "_network_history/" + networkId;
+        return level.getServer().overworld().getDataStorage().computeIfAbsent(factory, name);
     }
 
     @Override
     public CompoundTag save(final CompoundTag tag, final HolderLookup.Provider provider) {
-        // Build a compact dictionary from retained entries only. Expired resource IDs disappear.
         final Map<PlatformResourceKey, Integer> resourceIds = new LinkedHashMap<>();
         final ListTag snapshots = new ListTag();
         this.history.forEachStored((offset, changes) -> {
@@ -119,6 +122,11 @@ public class FlowSnapshotData extends SavedData {
             snapshot.put("deltas", deltas);
             snapshots.add(snapshot);
         });
+        final CompoundTag pendingTag = new CompoundTag();
+        this.pending.forEach((key, value) -> {
+            final int id = resourceIds.computeIfAbsent(key.resourceKey(), resource -> resourceIds.size() + 1);
+            pendingTag.putLong(Integer.toString(key.sign() > 0 ? id : -id), value);
+        });
         final CompoundTag dictionary = new CompoundTag();
         resourceIds.forEach((key, id) -> ResourceCodecs.CODEC.encodeStart(NbtOps.INSTANCE, key).result()
             .ifPresent(encoded -> dictionary.put(Integer.toString(id), encoded)));
@@ -126,6 +134,8 @@ public class FlowSnapshotData extends SavedData {
         tag.putInt("interval_count", this.history.size());
         tag.put("items_map", dictionary);
         tag.put("snapshots", snapshots);
+        tag.put("pending", pendingTag);
+        tag.putInt("pending_ticks", this.pendingTicks);
         return tag;
     }
 
@@ -142,17 +152,16 @@ public class FlowSnapshotData extends SavedData {
         super.save(file, provider);
     }
 
-    /**
-     * Advance one recording interval, retaining only its nonzero deltas.
-     */
     public void recordSnapshot(final Map<ResourceChangeKey, Long> deltaMap) {
         if (this.history.record(deltaMap)) {
+            this.revision++;
             this.setDirty();
         }
     }
 
     public void trimToLast(final int max) {
         if (this.history.trimToLast(max)) {
+            this.revision++;
             this.setDirty();
         }
     }
@@ -165,24 +174,59 @@ public class FlowSnapshotData extends SavedData {
         return this.history.size();
     }
 
-    public void copyToMonitor(final FlowMonitorHistory target, final Predicate<PlatformResourceKey> matches) {
-        for (final int seconds : FlowMonitorHistory.getIntervals()) {
-            final int frames = this.history.frameCount(seconds, FlowMonitorHistory.CAPACITY);
-            final long[] inflow = new long[frames];
-            final long[] outflow = new long[frames];
-            this.history.forEachRecent(seconds, FlowMonitorHistory.CAPACITY, (index, changes) ->
-                changes.forEach((key, amount) -> {
-                    if (matches.test(key.resourceKey())) {
-                        if (key.sign() > 0) {
-                            inflow[index] += Math.abs(amount);
-                        } else {
-                            outflow[index] += Math.abs(amount);
-                        }
-                    }
-                }));
-            // Frames end at the last recorded grid snapshot. New monitor samples follow that boundary.
-            target.loadFrames(seconds, inflow, outflow);
+    public long getRevision() {
+        return this.revision;
+    }
+
+    public void recordChange(final PlatformResourceKey resource, final long amount) {
+        if (amount != 0) {
+            this.pending.merge(new ResourceChangeKey(resource, amount > 0 ? (short) 1 : (short) -1), amount, Long::sum);
+            this.setDirty();
         }
+    }
+
+    public boolean tick() {
+        this.setDirty();
+        if (++this.pendingTicks < DATA_GRANULARITY) {
+            return false;
+        }
+        this.pendingTicks = 0;
+        this.recordSnapshot(this.pending);
+        this.pending.clear();
+        return true;
+    }
+
+    public void copyTo(final FlowSnapshotData target) {
+        target.history.trimToLast(0);
+        final int[] cursor = {0};
+        this.history.forEachStored((offset, changes) -> {
+            target.history.advanceEmpty(offset - cursor[0]);
+            target.history.record(changes);
+            cursor[0] = offset + 1;
+        });
+        target.history.advanceEmpty(this.history.size() - cursor[0]);
+        target.pending.clear();
+        target.pending.putAll(this.pending);
+        target.pendingTicks = this.pendingTicks;
+        target.revision++;
+        target.setDirty();
+    }
+
+    public Samples getSamples(final Predicate<PlatformResourceKey> matches, final int granularity, final int limit) {
+        final int intervals = this.intervalsPerFrame(granularity);
+        final int frames = this.history.frameCount(intervals, limit);
+        final long[] inflow = new long[frames];
+        final long[] outflow = new long[frames];
+        this.history.forEachRecent(intervals, limit, (index, changes) -> changes.forEach((key, amount) -> {
+            if (matches.test(key.resourceKey())) {
+                if (key.sign() > 0) {
+                    inflow[index] += Math.abs(amount);
+                } else {
+                    outflow[index] += Math.abs(amount);
+                }
+            }
+        }));
+        return new Samples(inflow, outflow);
     }
 
     private int intervalsPerFrame(final int desiredGranularity) {
@@ -200,7 +244,7 @@ public class FlowSnapshotData extends SavedData {
         final long[] outflow = new long[frames];
         final ResourceChangeKey inflowKey = new ResourceChangeKey(itemKey, (short) +1);
         final ResourceChangeKey outflowKey = new ResourceChangeKey(itemKey, (short) -1);
-        // Only look up this resource; gaps are already represented by zero-filled arrays.
+        // Only look up this resource; gaps are already represented by zero-filled arrays
         this.history.forEachRecent(intervals, MAX_SNAPSHOTS_FOR_CLIENTBOUND_PACKET, (index, changes) -> {
             inflow[index] += changes.getOrDefault(inflowKey, 0L);
             outflow[index] += changes.getOrDefault(outflowKey, 0L);
@@ -216,9 +260,12 @@ public class FlowSnapshotData extends SavedData {
 
     public Map<ResourceChangeKey, Long> getLastSnapshotAggregated(final int desiredGranularity) {
         final Map<ResourceChangeKey, Long> result = new HashMap<>();
-        // The resource list needs just the newest frame, not the complete graph window.
+        // The resource list needs just the newest frame, not the complete graph window
         this.history.forEachRecent(this.intervalsPerFrame(desiredGranularity), 1,
             (index, changes) -> changes.forEach((key, amount) -> result.merge(key, amount, Long::sum)));
         return result;
+    }
+
+    public record Samples(long[] inflow, long[] outflow) {
     }
 }

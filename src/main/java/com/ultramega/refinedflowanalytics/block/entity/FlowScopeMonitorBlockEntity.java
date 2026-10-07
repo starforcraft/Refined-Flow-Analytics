@@ -1,23 +1,16 @@
 package com.ultramega.refinedflowanalytics.block.entity;
 
-import com.ultramega.refinedflowanalytics.api.StorageSourceChangeContext;
+import com.ultramega.refinedflowanalytics.block.network.FlowScopeMonitorNetworkNode;
 import com.ultramega.refinedflowanalytics.container.FlowScopeMonitorContainerMenu;
 import com.ultramega.refinedflowanalytics.container.FlowScopeMonitorProperties;
-import com.ultramega.refinedflowanalytics.data.FlowMonitorHistory;
 import com.ultramega.refinedflowanalytics.data.FlowSnapshotData;
+import com.ultramega.refinedflowanalytics.network.FlowHistoryNetworkComponent;
 import com.ultramega.refinedflowanalytics.registry.ModBlockEntities;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.Granularity;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.LineStyle;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.MonitorFlowText;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.MonitorItemVisibility;
 
-import com.refinedmods.refinedstorage.api.network.Network;
-import com.refinedmods.refinedstorage.api.network.impl.node.SimpleNetworkNode;
-import com.refinedmods.refinedstorage.api.network.node.GraphNetworkComponent;
-import com.refinedmods.refinedstorage.api.network.storage.StorageNetworkComponent;
-import com.refinedmods.refinedstorage.api.resource.list.MutableResourceList;
-import com.refinedmods.refinedstorage.api.storage.root.RootStorageListener;
-import com.refinedmods.refinedstorage.common.Platform;
 import com.refinedmods.refinedstorage.common.api.support.resource.PlatformResourceKey;
 import com.refinedmods.refinedstorage.common.support.AbstractDirectionalBlock;
 import com.refinedmods.refinedstorage.common.support.FilterWithFuzzyMode;
@@ -29,7 +22,6 @@ import com.refinedmods.refinedstorage.common.util.PlatformUtil;
 
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import net.minecraft.core.BlockPos;
@@ -46,7 +38,7 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsTranslation;
 
-public class FlowScopeMonitorBlockEntity extends AbstractBaseNetworkNodeContainerBlockEntity<FlowScopeMonitorBlockEntity.MonitorNetworkNode>
+public class FlowScopeMonitorBlockEntity extends AbstractBaseNetworkNodeContainerBlockEntity<FlowScopeMonitorNetworkNode>
     implements NetworkNodeExtendedMenuProvider<ResourceContainerData> {
     public static final String ITEM_VISIBILITY_TAG = "item_visibility";
     public static final String FLOW_TEXT_TAG = "flow_text";
@@ -58,61 +50,30 @@ public class FlowScopeMonitorBlockEntity extends AbstractBaseNetworkNodeContaine
     private static final String FLOW_ACTIVE_TAG = "flow_active";
     private static final String FLOW_DISPLAY_TAG = "flow_display";
 
-    private final FlowMonitorHistory history = new FlowMonitorHistory();
     private final FilterWithFuzzyMode filter;
     private MonitorItemVisibility itemVisibility = MonitorItemVisibility.SHOW;
     private MonitorFlowText flowText = MonitorFlowText.NET;
     private Granularity granularity = Granularity.SECOND;
     private LineStyle lineStyle = LineStyle.EXACT;
-    private long pendingInflow;
-    private long pendingOutflow;
-    private int recordingTicks;
     private boolean loadingData;
-    private boolean historyInitialized;
+    @Nullable
+    private FlowSnapshotData displaySource;
+    private long sourceRevision = -1;
     private boolean displayActive;
     private long displayRevision;
     private long[] displayInflow = new long[0];
     private long[] displayOutflow = new long[0];
 
     public FlowScopeMonitorBlockEntity(final BlockPos pos, final BlockState state) {
-        super(ModBlockEntities.FLOW_MONITOR.get(), pos, state, new MonitorNetworkNode());
+        super(ModBlockEntities.FLOW_MONITOR.get(), pos, state, new FlowScopeMonitorNetworkNode());
         this.filter = FilterWithFuzzyMode.create(ResourceContainerImpl.createForFilter(1), this::filterChanged);
-        this.mainNetworkNode.changeListener = this::recordChange;
-        this.mainNetworkNode.networkChanged = this::resetPending;
-    }
-
-    private void recordChange(final MutableResourceList.OperationResult change) {
-        if (!this.mainNetworkNode.isActive() || StorageSourceChangeContext.isSourceChange() || change.change() == 0) {
-            return;
-        }
-        final PlatformResourceKey selected = this.getConfiguredResource();
-        final var normalizer = this.filter.createNormalizer();
-        if (selected == null || !normalizer.apply(selected).equals(normalizer.apply(change.resource()))) {
-            return;
-        }
-        // Seed before accepting the first live delta so it cannot also appear in the imported history.
-        this.initializeHistory();
-        if (change.change() > 0) {
-            this.pendingInflow += change.change();
-        } else {
-            this.pendingOutflow -= change.change();
-        }
-    }
-
-    private void resetPending() {
-        this.pendingInflow = 0;
-        this.pendingOutflow = 0;
-        this.recordingTicks = 0;
+        this.mainNetworkNode.setOwner(this::getLevel, this::setChanged);
     }
 
     private void filterChanged() {
         if (this.loadingData) {
             return;
         }
-        this.history.clear();
-        this.historyInitialized = false;
-        this.resetPending();
-        this.initializeHistory();
         this.setChanged();
         this.updateDisplay(true);
     }
@@ -120,62 +81,28 @@ public class FlowScopeMonitorBlockEntity extends AbstractBaseNetworkNodeContaine
     @Override
     public void doWork() {
         super.doWork();
-        if (this.level == null || this.level.isClientSide) {
-            return;
-        }
-        final boolean active = this.mainNetworkNode.isActive() && this.mainNetworkNode.getNetwork() != null;
-        if (!active || this.getConfiguredResource() == null) {
-            this.resetPending();
-            if (this.displayActive != active) {
-                this.updateDisplay(true);
-            }
-            return;
-        }
-        this.initializeHistory();
-        if (++this.recordingTicks >= 20) {
-            this.history.append(this.pendingInflow, this.pendingOutflow);
-            this.resetPending();
-            this.setChanged();
-            this.updateDisplay(false);
-        } else if (this.displayActive != active) {
-            this.updateDisplay(true);
-        }
-    }
-
-    private void initializeHistory() {
-        final Network network = this.mainNetworkNode.getNetwork();
-        final PlatformResourceKey selected = this.getConfiguredResource();
-        if (this.historyInitialized || this.loadingData || this.level == null || this.level.isClientSide
-            || network == null || selected == null) {
-            return;
-        }
-        FlowSnapshotData source = null;
-        for (final var container : network.getComponent(GraphNetworkComponent.class).getContainers()) {
-            if (container.getNode() instanceof FlowScopeBlockEntity.FlowScopeNetworkNode node) {
-                final FlowSnapshotData candidate = node.getSnapshotData();
-                if (candidate != null && (source == null || candidate.getRecordedIntervals() > source.getRecordedIntervals())) {
-                    source = candidate;
-                }
-            }
-        }
-        if (source != null) {
-            final var normalizer = this.filter.createNormalizer();
-            final var normalized = normalizer.apply(selected);
-            source.copyToMonitor(this.history, resource -> normalized.equals(normalizer.apply(resource)));
-        }
-        this.historyInitialized = true;
-        this.setChanged();
-        this.updateDisplay(true);
+        this.updateDisplay(false);
     }
 
     private void updateDisplay(final boolean force) {
         if (this.level == null || this.level.isClientSide) {
             return;
         }
-        final int seconds = this.granularity.getTickAmount() / 20;
-        final long[] inflow = this.history.getInflow(seconds);
-        final long[] outflow = this.history.getOutflow(seconds);
+        final FlowHistoryNetworkComponent component = this.mainNetworkNode.getHistoryComponent().orElse(null);
+        final FlowSnapshotData source = component == null ? null : component.getData().orElse(null);
+        final long revision = source == null ? -1 : source.getRevision();
         final boolean active = this.mainNetworkNode.isActive() && this.mainNetworkNode.getNetwork() != null;
+        if (!force && active == this.displayActive && source == this.displaySource && revision == this.sourceRevision) {
+            return;
+        }
+        final PlatformResourceKey selected = this.getConfiguredResource();
+        final FlowSnapshotData.Samples samples = component == null || selected == null
+            ? new FlowSnapshotData.Samples(new long[0], new long[0])
+            : component.getSamples(selected, this.isFuzzyMode(), this.filter.createNormalizer(), this.granularity.getTickAmount());
+        final long[] inflow = samples.inflow();
+        final long[] outflow = samples.outflow();
+        this.displaySource = source;
+        this.sourceRevision = revision;
         if (force || active != this.displayActive || !Arrays.equals(inflow, this.displayInflow) || !Arrays.equals(outflow, this.displayOutflow)) {
             this.displayInflow = inflow;
             this.displayOutflow = outflow;
@@ -301,10 +228,7 @@ public class FlowScopeMonitorBlockEntity extends AbstractBaseNetworkNodeContaine
     @Override
     public void saveAdditional(final CompoundTag tag, final HolderLookup.Provider provider) {
         super.saveAdditional(tag, provider);
-        tag.putBoolean("flow_history_initialized", this.historyInitialized);
-        for (final int seconds : FlowMonitorHistory.getIntervals()) {
-            tag.putLongArray("flow_history_" + seconds, this.history.saveBucket(seconds));
-        }
+        this.mainNetworkNode.saveHistoryId(tag);
     }
 
     @Override
@@ -315,20 +239,18 @@ public class FlowScopeMonitorBlockEntity extends AbstractBaseNetworkNodeContaine
             if (tag.getBoolean(FLOW_DISPLAY_TAG)) {
                 final long[] inflow = tag.getLongArray(FLOW_IN_TAG);
                 final long[] outflow = tag.getLongArray(FLOW_OUT_TAG);
-                final int length = Math.min(FlowMonitorHistory.CAPACITY, Math.min(inflow.length, outflow.length));
+                final int length = Math.min(FlowHistoryNetworkComponent.MONITOR_SAMPLES, Math.min(inflow.length, outflow.length));
                 this.displayInflow = Arrays.copyOf(inflow, length);
                 this.displayOutflow = Arrays.copyOf(outflow, length);
             } else {
-                for (final int seconds : FlowMonitorHistory.getIntervals()) {
-                    this.history.loadBucket(seconds, tag.getLongArray("flow_history_" + seconds));
-                }
-                this.historyInitialized = tag.getBoolean("flow_history_initialized") || this.history.getInflow(1).length > 0;
-                this.displayInflow = this.history.getInflow(this.granularity.getTickAmount() / 20);
-                this.displayOutflow = this.history.getOutflow(this.granularity.getTickAmount() / 20);
+                this.mainNetworkNode.loadHistoryId(tag);
+                this.displaySource = null;
+                this.sourceRevision = -1;
+                this.displayInflow = new long[0];
+                this.displayOutflow = new long[0];
             }
             this.displayActive = tag.getBoolean(FLOW_ACTIVE_TAG);
             this.displayRevision++;
-            this.resetPending();
         } finally {
             this.loadingData = false;
         }
@@ -373,31 +295,5 @@ public class FlowScopeMonitorBlockEntity extends AbstractBaseNetworkNodeContaine
     @Override
     protected boolean doesBlockStateChangeWarrantNetworkNodeUpdate(final BlockState oldState, final BlockState newState) {
         return AbstractDirectionalBlock.didDirectionChange(oldState, newState);
-    }
-
-    public static class MonitorNetworkNode extends SimpleNetworkNode {
-        private Consumer<MutableResourceList.OperationResult> changeListener = change -> { };
-        private Runnable networkChanged = () -> { };
-        private final RootStorageListener storageListener = change -> this.changeListener.accept(change);
-
-        public MonitorNetworkNode() {
-            super(Platform.INSTANCE.getConfig().getStorageMonitor().getEnergyUsage());
-        }
-
-        @Override
-        public void setNetwork(@Nullable final Network network) {
-            final Network previous = this.getNetwork();
-            if (previous == network) {
-                return;
-            }
-            if (previous != null) {
-                previous.getComponent(StorageNetworkComponent.class).removeListener(this.storageListener);
-            }
-            this.networkChanged.run();
-            super.setNetwork(network);
-            if (network != null) {
-                network.getComponent(StorageNetworkComponent.class).addListener(this.storageListener);
-            }
-        }
     }
 }

@@ -1,7 +1,7 @@
 package com.ultramega.refinedflowanalytics.screen;
 
 import com.ultramega.refinedflowanalytics.block.entity.FlowScopeMonitorBlockEntity;
-import com.ultramega.refinedflowanalytics.data.FlowMonitorHistory;
+import com.ultramega.refinedflowanalytics.network.FlowHistoryNetworkComponent;
 import com.ultramega.refinedflowanalytics.resource.ResourceChangeGranularityKey;
 import com.ultramega.refinedflowanalytics.screen.components.FlowScopeGraph;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.LineStyle;
@@ -102,7 +102,7 @@ public class FlowScopeMonitorRenderer implements BlockEntityRenderer<FlowScopeMo
         final long[] inflow = monitor.getDisplayInflow();
         final long[] outflow = monitor.getDisplayOutflow();
         final FlowScopeGraph graph = new FlowScopeGraph();
-        graph.setMinimumVisibleSamples(FlowMonitorHistory.CAPACITY);
+        graph.setMinimumVisibleSamples(FlowHistoryNetworkComponent.MONITOR_SAMPLES);
         graph.lineStyle = style;
         graph.setGraphPos(0, (int) GRAPH_HEIGHT);
         graph.setData(Map.of(

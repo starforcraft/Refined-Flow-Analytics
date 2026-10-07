@@ -15,6 +15,7 @@
   "gui.refinedflowanalytics.flow_scope.sorting_direction.descending": "Descending",
   "gui.refinedflowanalytics.flow_scope.sorting_type.name": "Name",
   "gui.refinedflowanalytics.flow_scope.sorting_type.quantity": "Quantity",
+  "gui.refinedflowanalytics.flow_scope.granularity.tick": "Tick",
   "gui.refinedflowanalytics.flow_scope.granularity.second": "Second",
   "gui.refinedflowanalytics.flow_scope.granularity.minute": "Minute",
   "gui.refinedflowanalytics.flow_scope.granularity.hour": "Hour",

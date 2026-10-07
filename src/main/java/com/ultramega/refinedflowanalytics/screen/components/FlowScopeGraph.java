@@ -422,8 +422,9 @@ public class FlowScopeGraph {
         final int selectionX2 = indexTo == this.pointsAmount ? this.left + WIDTH : (int) Math.round(this.getGuiX(indexTo - 0.5));
         graphics.fill(selectionX1, this.bottom - HEIGHT, selectionX2, this.bottom, 250, 0x22ffffff);
 
-        final LocalDateTime indexDate = this.dataTimeStamp.minus(this.pointsAmount - indexFrom, this.granularity.getChronoUnit());
-        final LocalDateTime nextIndexDate = this.dataTimeStamp.minus(this.pointsAmount - (indexTo), this.granularity.getChronoUnit());
+        final LocalDateTime indexDate = this.granularity.subtractSamples(this.dataTimeStamp, this.pointsAmount - indexFrom);
+        final LocalDateTime nextIndexDate = this.granularity.subtractSamples(this.dataTimeStamp, this.pointsAmount - indexTo);
+        final DateTimeFormatter timeFormat = DateTimeFormatter.ofPattern(this.granularity == Granularity.TICK ? "HH:mm:ss.SSS" : "HH:mm:ss");
 
         final long incvalue = Math.max(0, Arrays.stream(this.productionData).skip(indexFrom).limit(indexTo - indexFrom).sum());
         final long decvalue = Math.abs(Arrays.stream(this.consumptionData).skip(indexFrom).limit(indexTo - indexFrom).sum());
@@ -433,8 +434,8 @@ public class FlowScopeGraph {
 
         lines.add(new ClientTextTooltip(resourceRendering.getDisplayName(this.itemKey).getVisualOrderText()));
         lines.add(new SmallTextClientTooltipComponent(createFlowAnalyticsTranslation("gui", "flow_scope.flow_between",
-            indexDate.format(DateTimeFormatter.ofPattern("HH:mm:ss")),
-            nextIndexDate.format(DateTimeFormatter.ofPattern("HH:mm:ss")))));
+            indexDate.format(timeFormat),
+            nextIndexDate.format(timeFormat))));
         lines.add(new SmallTextClientTooltipComponent(
             createFlowAnalyticsTranslation("gui", "flow_scope.inflow_value", String.format("%,d", incvalue)).withColor(0xff00ff00)));
         lines.add(new SmallTextClientTooltipComponent(

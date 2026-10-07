@@ -90,7 +90,7 @@ public class FlowScopeMonitorBlockEntity extends AbstractBaseNetworkNodeContaine
         }
         final FlowHistoryNetworkComponent component = this.mainNetworkNode.getHistoryComponent().orElse(null);
         final FlowSnapshotData source = component == null ? null : component.getData().orElse(null);
-        final long revision = source == null ? -1 : source.getRevision();
+        final long revision = source == null ? -1 : source.getRevision(this.granularity.getTickAmount());
         final boolean active = this.mainNetworkNode.isActive() && this.mainNetworkNode.getNetwork() != null;
         if (!force && active == this.displayActive && source == this.displaySource && revision == this.sourceRevision) {
             return;

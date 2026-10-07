@@ -2,6 +2,7 @@ package com.ultramega.refinedflowanalytics.network;
 
 import com.ultramega.refinedflowanalytics.api.StorageSourceChangeContext;
 import com.ultramega.refinedflowanalytics.data.FlowSnapshotData;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.Granularity;
 
 import com.refinedmods.refinedstorage.api.network.Network;
 import com.refinedmods.refinedstorage.api.network.NetworkComponent;
@@ -112,7 +113,7 @@ public final class FlowHistoryNetworkComponent implements NetworkComponent {
 
     public FlowSnapshotData.Samples getSamples(final PlatformResourceKey resource,
                                                final boolean fuzzy,
-                                              final UnaryOperator<ResourceKey> normalizer,
+                                               final UnaryOperator<ResourceKey> normalizer,
                                                final int granularity) {
         this.resolveHistory();
         if (this.data == null) {
@@ -186,8 +187,11 @@ public final class FlowHistoryNetworkComponent implements NetworkComponent {
 
     private void tick() {
         this.recording = this.nodes.stream().anyMatch(FlowHistoryNode::isActive);
-        if (this.recording && this.data != null && this.data.tick()) {
-            this.queries.clear();
+        if (this.recording && this.data != null) {
+            this.queries.keySet().removeIf(query -> query.granularity() == Granularity.TICK.getTickAmount());
+            if (this.data.tick()) {
+                this.queries.clear();
+            }
         }
     }
 

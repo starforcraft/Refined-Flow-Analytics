@@ -2,6 +2,7 @@ package com.ultramega.refinedflowanalytics.data;
 
 import com.ultramega.refinedflowanalytics.resource.ResourceChangeGranularityKey;
 import com.ultramega.refinedflowanalytics.resource.ResourceChangeKey;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.Granularity;
 
 import com.refinedmods.refinedstorage.common.api.support.resource.PlatformResourceKey;
 import com.refinedmods.refinedstorage.common.support.resource.ResourceCodecs;
@@ -36,9 +37,12 @@ public class FlowSnapshotData extends SavedData {
     private static final int MAX_SNAPSHOTS_FOR_CLIENTBOUND_PACKET = 209;
 
     private final SparseSnapshotHistory<ResourceChangeKey> history = new SparseSnapshotHistory<>(MAX_COLLECTION_SNAPSHOTS);
+    private final SparseSnapshotHistory<ResourceChangeKey> tickHistory = new SparseSnapshotHistory<>(MAX_SNAPSHOTS_FOR_CLIENTBOUND_PACKET);
     private final Map<ResourceChangeKey, Long> pending = new HashMap<>();
+    private final Map<ResourceChangeKey, Long> tickPending = new HashMap<>();
     private int pendingTicks;
     private long revision;
+    private long tickRevision;
 
     public static FlowSnapshotData load(final CompoundTag tag, final HolderLookup.Provider provider) {
         final FlowSnapshotData data = new FlowSnapshotData();
@@ -71,6 +75,21 @@ public class FlowSnapshotData extends SavedData {
         data.history.advanceEmpty(intervals - cursor);
         data.pending.putAll(readDeltas(tag.getCompound("pending"), dictionary, resolvedKeys));
         data.pendingTicks = Math.clamp(tag.getInt("pending_ticks"), 0, DATA_GRANULARITY - 1);
+        final int tickCount = Math.clamp(tag.getInt("tick_count"), 0, MAX_SNAPSHOTS_FOR_CLIENTBOUND_PACKET);
+        final ListTag ticks = tag.getList("tick_snapshots", Tag.TAG_COMPOUND);
+        int tickCursor = 0;
+        for (int i = 0; i < ticks.size(); i++) {
+            final CompoundTag snapshot = ticks.getCompound(i);
+            final int offset = snapshot.getInt("offset");
+            if (offset < tickCursor || offset >= tickCount) {
+                throw new IllegalArgumentException("Invalid tick history snapshot offset: " + offset);
+            }
+            data.tickHistory.advanceEmpty(offset - tickCursor);
+            data.tickHistory.record(readDeltas(snapshot.getCompound("deltas"), dictionary, resolvedKeys));
+            tickCursor = offset + 1;
+        }
+        data.tickHistory.advanceEmpty(tickCount - tickCursor);
+        data.tickPending.putAll(readDeltas(tag.getCompound("tick_pending"), dictionary, resolvedKeys));
         if (retainedStart > 0) {
             data.setDirty();
         }
@@ -127,6 +146,23 @@ public class FlowSnapshotData extends SavedData {
             final int id = resourceIds.computeIfAbsent(key.resourceKey(), resource -> resourceIds.size() + 1);
             pendingTag.putLong(Integer.toString(key.sign() > 0 ? id : -id), value);
         });
+        final ListTag tickSnapshots = new ListTag();
+        this.tickHistory.forEachStored((offset, changes) -> {
+            final CompoundTag snapshot = new CompoundTag();
+            final CompoundTag deltas = new CompoundTag();
+            changes.forEach((key, value) -> {
+                final int id = resourceIds.computeIfAbsent(key.resourceKey(), resource -> resourceIds.size() + 1);
+                deltas.putLong(Integer.toString(key.sign() > 0 ? id : -id), value);
+            });
+            snapshot.putInt("offset", offset);
+            snapshot.put("deltas", deltas);
+            tickSnapshots.add(snapshot);
+        });
+        final CompoundTag tickPendingTag = new CompoundTag();
+        this.tickPending.forEach((key, value) -> {
+            final int id = resourceIds.computeIfAbsent(key.resourceKey(), resource -> resourceIds.size() + 1);
+            tickPendingTag.putLong(Integer.toString(key.sign() > 0 ? id : -id), value);
+        });
         final CompoundTag dictionary = new CompoundTag();
         resourceIds.forEach((key, id) -> ResourceCodecs.CODEC.encodeStart(NbtOps.INSTANCE, key).result()
             .ifPresent(encoded -> dictionary.put(Integer.toString(id), encoded)));
@@ -136,6 +172,9 @@ public class FlowSnapshotData extends SavedData {
         tag.put("snapshots", snapshots);
         tag.put("pending", pendingTag);
         tag.putInt("pending_ticks", this.pendingTicks);
+        tag.putInt("tick_count", this.tickHistory.size());
+        tag.put("tick_snapshots", tickSnapshots);
+        tag.put("tick_pending", tickPendingTag);
         return tag;
     }
 
@@ -178,15 +217,24 @@ public class FlowSnapshotData extends SavedData {
         return this.revision;
     }
 
+    public long getRevision(final int granularity) {
+        return granularity == Granularity.TICK.getTickAmount() ? this.tickRevision : this.revision;
+    }
+
     public void recordChange(final PlatformResourceKey resource, final long amount) {
         if (amount != 0) {
             this.pending.merge(new ResourceChangeKey(resource, amount > 0 ? (short) 1 : (short) -1), amount, Long::sum);
+            this.tickPending.merge(new ResourceChangeKey(resource, amount > 0 ? (short) 1 : (short) -1), amount, Long::sum);
             this.setDirty();
         }
     }
 
     public boolean tick() {
         this.setDirty();
+        if (this.tickHistory.record(this.tickPending)) {
+            this.tickRevision++;
+        }
+        this.tickPending.clear();
         if (++this.pendingTicks < DATA_GRANULARITY) {
             return false;
         }
@@ -197,14 +245,11 @@ public class FlowSnapshotData extends SavedData {
     }
 
     public void copyTo(final FlowSnapshotData target) {
-        target.history.trimToLast(0);
-        final int[] cursor = {0};
-        this.history.forEachStored((offset, changes) -> {
-            target.history.advanceEmpty(offset - cursor[0]);
-            target.history.record(changes);
-            cursor[0] = offset + 1;
-        });
-        target.history.advanceEmpty(this.history.size() - cursor[0]);
+        copyHistory(this.history, target.history);
+        copyHistory(this.tickHistory, target.tickHistory);
+        target.tickPending.clear();
+        target.tickPending.putAll(this.tickPending);
+        target.tickRevision++;
         target.pending.clear();
         target.pending.putAll(this.pending);
         target.pendingTicks = this.pendingTicks;
@@ -212,12 +257,25 @@ public class FlowSnapshotData extends SavedData {
         target.setDirty();
     }
 
+    private static void copyHistory(final SparseSnapshotHistory<ResourceChangeKey> source,
+                                    final SparseSnapshotHistory<ResourceChangeKey> target) {
+        target.trimToLast(0);
+        final int[] cursor = {0};
+        source.forEachStored((offset, changes) -> {
+            target.advanceEmpty(offset - cursor[0]);
+            target.record(changes);
+            cursor[0] = offset + 1;
+        });
+        target.advanceEmpty(source.size() - cursor[0]);
+    }
+
     public Samples getSamples(final Predicate<PlatformResourceKey> matches, final int granularity, final int limit) {
         final int intervals = this.intervalsPerFrame(granularity);
-        final int frames = this.history.frameCount(intervals, limit);
+        final SparseSnapshotHistory<ResourceChangeKey> source = this.historyFor(granularity);
+        final int frames = source.frameCount(intervals, limit);
         final long[] inflow = new long[frames];
         final long[] outflow = new long[frames];
-        this.history.forEachRecent(intervals, limit, (index, changes) -> changes.forEach((key, amount) -> {
+        source.forEachRecent(intervals, limit, (index, changes) -> changes.forEach((key, amount) -> {
             if (matches.test(key.resourceKey())) {
                 if (key.sign() > 0) {
                     inflow[index] += Math.abs(amount);
@@ -230,22 +288,30 @@ public class FlowSnapshotData extends SavedData {
     }
 
     private int intervalsPerFrame(final int desiredGranularity) {
+        if (desiredGranularity == Granularity.TICK.getTickAmount()) {
+            return 1;
+        }
         if (desiredGranularity < DATA_GRANULARITY || desiredGranularity % DATA_GRANULARITY != 0) {
             throw new IllegalArgumentException("Flow granularity must be a positive multiple of " + DATA_GRANULARITY);
         }
         return desiredGranularity / DATA_GRANULARITY;
     }
 
+    private SparseSnapshotHistory<ResourceChangeKey> historyFor(final int granularity) {
+        return granularity == Granularity.TICK.getTickAmount() ? this.tickHistory : this.history;
+    }
+
     public Map<ResourceChangeGranularityKey, long[]> getGenerationDetails(final PlatformResourceKey itemKey,
                                                                           final int desiredGranularity) {
         final int intervals = this.intervalsPerFrame(desiredGranularity);
-        final int frames = this.history.frameCount(intervals, MAX_SNAPSHOTS_FOR_CLIENTBOUND_PACKET);
+        final SparseSnapshotHistory<ResourceChangeKey> source = this.historyFor(desiredGranularity);
+        final int frames = source.frameCount(intervals, MAX_SNAPSHOTS_FOR_CLIENTBOUND_PACKET);
         final long[] inflow = new long[frames];
         final long[] outflow = new long[frames];
         final ResourceChangeKey inflowKey = new ResourceChangeKey(itemKey, (short) +1);
         final ResourceChangeKey outflowKey = new ResourceChangeKey(itemKey, (short) -1);
         // Only look up this resource; gaps are already represented by zero-filled arrays
-        this.history.forEachRecent(intervals, MAX_SNAPSHOTS_FOR_CLIENTBOUND_PACKET, (index, changes) -> {
+        source.forEachRecent(intervals, MAX_SNAPSHOTS_FOR_CLIENTBOUND_PACKET, (index, changes) -> {
             inflow[index] += changes.getOrDefault(inflowKey, 0L);
             outflow[index] += changes.getOrDefault(outflowKey, 0L);
         });
@@ -261,7 +327,7 @@ public class FlowSnapshotData extends SavedData {
     public Map<ResourceChangeKey, Long> getLastSnapshotAggregated(final int desiredGranularity) {
         final Map<ResourceChangeKey, Long> result = new HashMap<>();
         // The resource list needs just the newest frame, not the complete graph window
-        this.history.forEachRecent(this.intervalsPerFrame(desiredGranularity), 1,
+        this.historyFor(desiredGranularity).forEachRecent(this.intervalsPerFrame(desiredGranularity), 1,
             (index, changes) -> changes.forEach((key, amount) -> result.merge(key, amount, Long::sum)));
         return result;
     }

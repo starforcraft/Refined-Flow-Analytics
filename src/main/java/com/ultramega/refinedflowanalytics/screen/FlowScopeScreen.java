@@ -1,6 +1,7 @@
 package com.ultramega.refinedflowanalytics.screen;
 
 import com.ultramega.refinedflowanalytics.container.FlowScopeContainerMenu;
+import com.ultramega.refinedflowanalytics.data.FlowEstimate;
 import com.ultramega.refinedflowanalytics.resource.ResourceChangeGranularityKey;
 import com.ultramega.refinedflowanalytics.screen.components.FlowItemButton;
 import com.ultramega.refinedflowanalytics.screen.components.FlowScopeGraph;
@@ -17,6 +18,8 @@ import com.refinedmods.refinedstorage.common.api.RefinedStorageClientApi;
 import com.refinedmods.refinedstorage.common.api.support.resource.PlatformResourceKey;
 import com.refinedmods.refinedstorage.common.api.support.resource.ResourceRendering;
 import com.refinedmods.refinedstorage.common.support.AbstractBaseScreen;
+import com.refinedmods.refinedstorage.common.support.resource.FluidResource;
+import com.refinedmods.refinedstorage.common.support.resource.ItemResource;
 import com.refinedmods.refinedstorage.common.support.widget.History;
 import com.refinedmods.refinedstorage.common.support.widget.ScrollbarWidget;
 import com.refinedmods.refinedstorage.common.support.widget.SearchFieldWidget;
@@ -72,6 +75,10 @@ public class FlowScopeScreen extends AbstractBaseScreen<FlowScopeContainerMenu> 
 
     private final List<FlowItemButton> itemButtons = new ArrayList<>();
     private final FlowScopeGraph graph = new FlowScopeGraph();
+    private FlowEstimate cachedEstimate = FlowEstimate.EMPTY;
+    @Nullable
+    private PlatformResourceKey cachedEstimateResource;
+    private String[] estimateLabels = new String[0];
 
     private int innerLeft = this.leftPos + 8;
     private int innerTop = this.topPos + 20;
@@ -206,18 +213,12 @@ public class FlowScopeScreen extends AbstractBaseScreen<FlowScopeContainerMenu> 
         final int estimatesRowShift = 160;
         graphics.drawString(this.font, createFlowAnalyticsTranslation("gui", "flow_scope.estimates"),
             graphLeft + estimatesRowShift, graphBottom + 25, ESTIMATES_BLUE);
-        final long seconds = (long) Granularity.SECOND.convertFrom(granularity, this.graph.getNetAvg());
-        graphics.drawString(this.font, this.formatSignedAmount(itemKey, seconds) + Granularity.SECOND.perStr(),
-            graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 3, WHITE);
-        final long minutes = (long) Granularity.MINUTE.convertFrom(granularity, this.graph.getNetAvg());
-        graphics.drawString(this.font, this.formatSignedAmount(itemKey, minutes) + Granularity.MINUTE.perStr(),
-            graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 4, WHITE);
-        final long hours = (long) Granularity.HOUR.convertFrom(granularity, this.graph.getNetAvg());
-        graphics.drawString(this.font, this.formatSignedAmount(itemKey, hours) + Granularity.HOUR.perStr(),
-            graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 5, WHITE);
-        final long days = (long) Granularity.DAY.convertFrom(granularity, this.graph.getNetAvg());
-        graphics.drawString(this.font, this.formatSignedAmount(itemKey, days) + Granularity.DAY.perStr(),
-            graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 6, WHITE);
+        final FlowEstimate estimate = this.graph.getEstimate();
+        this.updateEstimateLabels(itemKey, estimate);
+        graphics.drawString(this.font, this.estimateLabels[0], graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 3, WHITE);
+        graphics.drawString(this.font, this.estimateLabels[1], graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 4, WHITE);
+        graphics.drawString(this.font, this.estimateLabels[2], graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 5, WHITE);
+        graphics.drawString(this.font, this.estimateLabels[3], graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 6, WHITE);
 
         // Overall stats
         final long net = Arrays.stream(this.graph.getNetData()).sum();
@@ -450,14 +451,37 @@ public class FlowScopeScreen extends AbstractBaseScreen<FlowScopeContainerMenu> 
         return RefinedStorageClientApi.INSTANCE.getResourceRendering(resourceKey.getClass()).formatAmount(amount, true);
     }
 
-    private String formatSignedAmount(final PlatformResourceKey resourceKey, final long amount) {
-        final long unsignedAmount = Math.abs(amount);
-        final String formatted = this.formatAmount(resourceKey, unsignedAmount);
-        if (amount < 0) {
-            return "-" + formatted;
-        } else {
-            return "+" + formatted;
+    private void updateEstimateLabels(final PlatformResourceKey resourceKey, final FlowEstimate estimate) {
+        if (estimate.equals(this.cachedEstimate) && resourceKey.equals(this.cachedEstimateResource)) {
+            return;
         }
+        this.cachedEstimate = estimate;
+        this.cachedEstimateResource = resourceKey;
+        this.estimateLabels = new String[]{
+            this.formatEstimate(resourceKey, estimate, Granularity.SECOND),
+            this.formatEstimate(resourceKey, estimate, Granularity.MINUTE),
+            this.formatEstimate(resourceKey, estimate, Granularity.HOUR),
+            this.formatEstimate(resourceKey, estimate, Granularity.DAY)
+        };
+    }
+
+    private String formatEstimate(final PlatformResourceKey resourceKey, final FlowEstimate estimate, final Granularity target) {
+        if (!estimate.available()) {
+            return "—" + target.perStr();
+        }
+        final double amount = estimate.forTicks(target.getTickAmount());
+        final double magnitude = Math.abs(amount);
+        final String formatted;
+        if (resourceKey instanceof ItemResource && magnitude < 1000) {
+            formatted = FlowEstimate.formatNumber(magnitude);
+        } else if (resourceKey instanceof FluidResource && magnitude < 1000) {
+            formatted = FlowEstimate.formatNumber(resourceKey.getResourceType().getDisplayAmount(1) * magnitude) + " B";
+        } else if (magnitude > 0 && magnitude < 1000 && magnitude != Math.rint(magnitude)) {
+            formatted = FlowEstimate.formatNumber(magnitude) + " × " + this.formatAmount(resourceKey, 1);
+        } else {
+            formatted = this.formatAmount(resourceKey, Math.round(magnitude));
+        }
+        return (amount < 0 ? "-" : amount > 0 ? "+" : "") + formatted + target.perStr();
     }
 
     public void enableScissorFromGui(final int guiX, final int guiY, final int guiWidth, final int guiHeight) {
@@ -520,6 +544,14 @@ public class FlowScopeScreen extends AbstractBaseScreen<FlowScopeContainerMenu> 
     protected void renderTooltip(final GuiGraphics graphics, final int mouseX, final int mouseY) {
         if (this.hasDetailedGenerationData) {
             this.graph.renderTooltip(graphics, mouseX, mouseY);
+            final Component heading = createFlowAnalyticsTranslation("gui", "flow_scope.estimates");
+            if (!this.graph.isLoading() && this.isHovering(GRAPH_X + 160, GRAPH_BOTTOM + 25,
+                this.font.width(heading), this.font.lineHeight, mouseX, mouseY)) {
+                final FlowEstimate estimate = this.graph.getEstimate();
+                graphics.renderTooltip(this.font, estimate.available()
+                    ? createFlowAnalyticsTranslation("gui", "flow_scope.estimates_window", estimate.observationWindow())
+                    : createFlowAnalyticsTranslation("gui", "flow_scope.estimates_empty"), mouseX, mouseY);
+            }
         } else {
             final FlowItemButton hoveredButton = this.findHoveredItemButton(mouseX, mouseY);
             if (hoveredButton != null) {

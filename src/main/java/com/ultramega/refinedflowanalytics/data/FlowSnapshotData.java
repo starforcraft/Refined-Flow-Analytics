@@ -321,6 +321,8 @@ public class FlowSnapshotData extends SavedData {
         final Map<ResourceChangeGranularityKey, long[]> result = new HashMap<>();
         result.put(new ResourceChangeGranularityKey(itemKey, (short) +1, desiredGranularity), inflow);
         result.put(new ResourceChangeGranularityKey(itemKey, (short) -1, desiredGranularity), outflow);
+        final long recordedTicks = Math.min(source.size(), (long) frames * intervals) * (desiredGranularity == 1 ? 1 : DATA_GRANULARITY);
+        result.put(new ResourceChangeGranularityKey(itemKey, FlowEstimate.DURATION_SIGN, desiredGranularity), new long[]{recordedTicks});
         return result;
     }
 

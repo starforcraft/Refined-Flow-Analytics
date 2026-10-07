@@ -1,5 +1,6 @@
 package com.ultramega.refinedflowanalytics.screen.components;
 
+import com.ultramega.refinedflowanalytics.data.FlowEstimate;
 import com.ultramega.refinedflowanalytics.resource.ResourceChangeGranularityKey;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.Granularity;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.LineStyle;
@@ -61,6 +62,7 @@ public class FlowScopeGraph {
     private long[] productionData = new long[0];
     private long[] consumptionData = new long[0];
     private long[] netData = new long[0];
+    private FlowEstimate estimate = FlowEstimate.EMPTY;
     private Long totalStored;
 
     private int selectedIndex = -1;
@@ -124,6 +126,8 @@ public class FlowScopeGraph {
         this.consumptionData = Arrays.copyOf(this.consumptionData, this.pointsAmount);
         this.netData = IntStream.range(0, this.pointsAmount).mapToLong(i -> this.productionData[i] - this.consumptionData[i])
             .toArray();
+        final long[] duration = data.getOrDefault(new ResourceChangeGranularityKey(this.itemKey, FlowEstimate.DURATION_SIGN, granularity.getTickAmount()), new long[0]);
+        this.estimate = FlowEstimate.from(this.productionData, this.consumptionData, duration.length == 1 ? duration[0] : 0);
         this.totalStored = Arrays
             .stream(data.getOrDefault(
                 new ResourceChangeGranularityKey(this.itemKey, (short) 0, granularity.getTickAmount()), new long[0]))
@@ -379,6 +383,10 @@ public class FlowScopeGraph {
 
     public double getNetAvg() {
         return Arrays.stream(this.netData).mapToDouble(value -> value).average().orElse(0.0);
+    }
+
+    public FlowEstimate getEstimate() {
+        return this.estimate;
     }
 
     public boolean isInBounds(final int mouseX, final int mouseY) {

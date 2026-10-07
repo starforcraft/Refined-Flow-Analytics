@@ -88,6 +88,7 @@ public class FlowScopeMonitorBlockEntity extends AbstractBaseNetworkNodeContaine
         if (this.level == null || this.level.isClientSide) {
             return;
         }
+
         final FlowHistoryNetworkComponent component = this.mainNetworkNode.getHistoryComponent().orElse(null);
         final FlowSnapshotData source = component == null ? null : component.getData().orElse(null);
         final long revision = source == null ? -1 : source.getRevision(this.granularity.getTickAmount());
@@ -95,6 +96,7 @@ public class FlowScopeMonitorBlockEntity extends AbstractBaseNetworkNodeContaine
         if (!force && active == this.displayActive && source == this.displaySource && revision == this.sourceRevision) {
             return;
         }
+
         final PlatformResourceKey selected = this.getConfiguredResource();
         final FlowSnapshotData.Samples samples = component == null || selected == null
             ? new FlowSnapshotData.Samples(new long[0], new long[0])

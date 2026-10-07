@@ -27,6 +27,8 @@
   "gui.refinedflowanalytics.flow_scope.outflow": "Outflow",
   "gui.refinedflowanalytics.flow_scope.average": "Avg",
   "gui.refinedflowanalytics.flow_scope.estimates": "Estimates (net)",
+  "gui.refinedflowanalytics.flow_scope.estimates_window": "Based on %s of recorded activity",
+  "gui.refinedflowanalytics.flow_scope.estimates_empty": "No recorded history yet",
   "gui.refinedflowanalytics.flow_scope.maximum": "Max: %s",
   "gui.refinedflowanalytics.flow_scope.minimum": "Min:  %s",
   "gui.refinedflowanalytics.flow_scope.total_stored": "Total in storage: %s",

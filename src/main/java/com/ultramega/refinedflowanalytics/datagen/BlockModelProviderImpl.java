@@ -37,6 +37,14 @@ public class BlockModelProviderImpl extends BlockModelProvider {
     protected void registerModels() {
         this.registerRightLeftBackFrontTopModel(ModBlocks.INSTANCE.getFlowGrid(), "flow_grid");
         this.withExistingParent("block/flow_monitor", createIdentifier("block/storage_monitor"));
+        this.registerFlowDetectors();
+    }
+
+    private void registerFlowDetectors() {
+        ModBlocks.INSTANCE.getFlowDetector().forEach((color, id, block) -> {
+            this.withExistingParent("block/" + id.getPath(), createIdentifier("block/detector/" + color.getName()));
+            this.withExistingParent("block/" + id.getPath() + "_unpowered", createIdentifier("block/detector/unpowered"));
+        });
     }
 
     private void registerRightLeftBackFrontTopModel(final BlockColorMap<?, ?> blockMap, final String name) {

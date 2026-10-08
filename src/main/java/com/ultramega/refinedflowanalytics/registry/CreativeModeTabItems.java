@@ -20,6 +20,7 @@ public final class CreativeModeTabItems {
             .displayItems((parameters, output) -> {
                 ModItems.INSTANCE.getFlowGrids().forEach(item -> output.accept(item.get()));
                 output.accept(ModItems.FLOW_MONITOR.get());
+                ModItems.INSTANCE.getFlowDetectors().forEach(item -> output.accept(item.get()));
             })
             .build()
     );

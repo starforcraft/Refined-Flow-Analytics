@@ -8,6 +8,7 @@ import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdenti
 
 public final class ModTags {
     public static final TagKey<Item> FLOW_GRIDS = createTag("flow_grids");
+    public static final TagKey<Item> FLOW_DETECTORS = createTag("flow_detectors");
 
     private ModTags() {
     }

@@ -47,6 +47,6 @@ public class FlowGridBlock extends AbstractGridBlock<FlowGridBlock, BaseBlockIte
 
     @Override
     public BaseBlockItem createBlockItem() {
-        return new BaseBlockItem(this);
+        return new BaseBlockItem(this); //TODO: add HELP
     }
 }

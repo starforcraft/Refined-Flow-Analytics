@@ -2,7 +2,7 @@ package com.ultramega.refinedflowanalytics.container;
 
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.Granularity;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.LineStyle;
-import com.ultramega.refinedflowanalytics.screen.sidebuttons.MonitorFlowText;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.FlowDirection;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.MonitorItemVisibility;
 
 import com.refinedmods.refinedstorage.common.support.containermenu.PropertyType;
@@ -15,7 +15,7 @@ import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdenti
 
 public final class FlowMonitorProperties {
     public static final PropertyType<MonitorItemVisibility> ITEM_VISIBILITY = create(ITEM_VISIBILITY_TAG, MonitorItemVisibility.values());
-    public static final PropertyType<MonitorFlowText> FLOW_TEXT = create(FLOW_TEXT_TAG, MonitorFlowText.values());
+    public static final PropertyType<FlowDirection> FLOW_TEXT = create(FLOW_TEXT_TAG, FlowDirection.values());
     public static final PropertyType<Granularity> GRANULARITY = create(GRANULARITY_TAG, Granularity.values());
     public static final PropertyType<LineStyle> LINE_STYLE = create(LINE_STYLE_TAG, LineStyle.values());
 

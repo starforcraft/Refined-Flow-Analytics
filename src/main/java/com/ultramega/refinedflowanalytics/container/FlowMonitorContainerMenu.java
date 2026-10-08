@@ -4,7 +4,7 @@ import com.ultramega.refinedflowanalytics.block.entity.FlowMonitorBlockEntity;
 import com.ultramega.refinedflowanalytics.registry.ModMenus;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.Granularity;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.LineStyle;
-import com.ultramega.refinedflowanalytics.screen.sidebuttons.MonitorFlowText;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.FlowDirection;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.MonitorItemVisibility;
 
 import com.refinedmods.refinedstorage.common.api.support.resource.ResourceContainer;
@@ -39,7 +39,7 @@ public class FlowMonitorContainerMenu extends AbstractResourceContainerMenu {
         this.registerProperty(new ClientProperty<>(PropertyTypes.FUZZY_MODE, false));
         this.registerProperty(new ClientProperty<>(PropertyTypes.REDSTONE_MODE, RedstoneMode.IGNORE));
         this.registerProperty(new ClientProperty<>(FlowMonitorProperties.ITEM_VISIBILITY, MonitorItemVisibility.SHOW));
-        this.registerProperty(new ClientProperty<>(FlowMonitorProperties.FLOW_TEXT, MonitorFlowText.NET));
+        this.registerProperty(new ClientProperty<>(FlowMonitorProperties.FLOW_TEXT, FlowDirection.NET));
         this.registerProperty(new ClientProperty<>(FlowMonitorProperties.GRANULARITY, Granularity.SECOND));
         this.registerProperty(new ClientProperty<>(FlowMonitorProperties.LINE_STYLE, LineStyle.EXACT));
         this.addSlots(playerInventory, ResourceContainerImpl.createForFilter(resourceContainerData));

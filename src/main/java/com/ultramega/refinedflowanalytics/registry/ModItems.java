@@ -20,7 +20,11 @@ public final class ModItems {
     public static final DeferredHolder<Item, NetworkNodeBlockItem> FLOW_MONITOR = DeferredHolder.create(
         Registries.ITEM, createFlowAnalyticsIdentifier("flow_monitor"));
 
+    public static final DeferredHolder<Item, BaseBlockItem> FLOW_DETECTOR = DeferredHolder.create(
+        Registries.ITEM, createFlowAnalyticsIdentifier("flow_detector"));
+
     private final List<Supplier<BaseBlockItem>> allFlowGrids = new ArrayList<>();
+    private final List<Supplier<BaseBlockItem>> allFlowDetectors = new ArrayList<>();
 
     private ModItems() {
     }
@@ -31,5 +35,13 @@ public final class ModItems {
 
     public List<Supplier<BaseBlockItem>> getFlowGrids() {
         return Collections.unmodifiableList(this.allFlowGrids);
+    }
+
+    public void addFlowDetector(final Supplier<BaseBlockItem> supplier) {
+        this.allFlowDetectors.add(supplier);
+    }
+
+    public List<Supplier<BaseBlockItem>> getFlowDetectors() {
+        return Collections.unmodifiableList(this.allFlowDetectors);
     }
 }

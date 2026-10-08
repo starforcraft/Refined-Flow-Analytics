@@ -2,6 +2,10 @@ package com.ultramega.refinedflowanalytics.datagen;
 
 import com.ultramega.refinedflowanalytics.registry.ModBlocks;
 
+import com.refinedmods.refinedstorage.common.content.BlockColorMap;
+import com.refinedmods.refinedstorage.common.support.AbstractBaseBlock;
+import com.refinedmods.refinedstorage.common.support.BaseBlockItem;
+
 import net.minecraft.data.PackOutput;
 import net.neoforged.neoforge.client.model.generators.ItemModelProvider;
 import net.neoforged.neoforge.common.data.ExistingFileHelper;
@@ -16,15 +20,15 @@ public class ItemModelProviderImpl extends ItemModelProvider {
 
     @Override
     protected void registerModels() {
-        this.registerFlowGrid();
+        this.registerColoredBlock(ModBlocks.INSTANCE.getFlowGrid());
         this.withExistingParent("flow_monitor", createFlowAnalyticsIdentifier("block/flow_monitor"));
+        this.registerColoredBlock(ModBlocks.INSTANCE.getFlowDetector());
     }
 
-    private void registerFlowGrid() {
-        final var blocks = ModBlocks.INSTANCE.getFlowGrid();
+    private void registerColoredBlock(final BlockColorMap<? extends AbstractBaseBlock, BaseBlockItem> blocks) {
         blocks.forEach((color, id, block) -> this.withExistingParent(
             id.getPath(),
-            createFlowAnalyticsIdentifier("block/flow_grid/" + color.getName())
+            createFlowAnalyticsIdentifier("block/" + id.getPath())
         ));
     }
 }

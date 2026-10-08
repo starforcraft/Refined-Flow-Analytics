@@ -1,5 +1,6 @@
 package com.ultramega.refinedflowanalytics.registry;
 
+import com.ultramega.refinedflowanalytics.block.FlowDetectorBlock;
 import com.ultramega.refinedflowanalytics.block.FlowGridBlock;
 import com.ultramega.refinedflowanalytics.block.FlowMonitorBlock;
 
@@ -28,11 +29,21 @@ public final class ModBlocks {
         COLOR
     );
 
+    private final BlockColorMap<FlowDetectorBlock, BaseBlockItem> flowDetector = new BlockColorMap<>(
+        FlowDetectorBlock::new,
+        createFlowAnalyticsIdentifier("flow_detector"),
+        createFlowAnalyticsTranslation("block", "flow_detector"),
+        DyeColor.LIGHT_BLUE
+    );
 
     private ModBlocks() {
     }
 
     public BlockColorMap<FlowGridBlock, BaseBlockItem> getFlowGrid() {
         return this.flowGrid;
+    }
+
+    public BlockColorMap<FlowDetectorBlock, BaseBlockItem> getFlowDetector() {
+        return this.flowDetector;
     }
 }

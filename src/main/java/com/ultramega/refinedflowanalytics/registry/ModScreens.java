@@ -1,6 +1,7 @@
 package com.ultramega.refinedflowanalytics.registry;
 
 import com.ultramega.refinedflowanalytics.network.MenuStateUpdateMessage;
+import com.ultramega.refinedflowanalytics.screen.FlowDetectorScreen;
 import com.ultramega.refinedflowanalytics.screen.FlowGridScreen;
 import com.ultramega.refinedflowanalytics.screen.FlowMonitorRenderer;
 import com.ultramega.refinedflowanalytics.screen.FlowMonitorScreen;
@@ -23,6 +24,7 @@ public class ModScreens {
     public static void clientLoad(final RegisterMenuScreensEvent event) {
         event.register(ModMenus.FLOW_GRID_MENU.get(), FlowGridScreen::new);
         event.register(ModMenus.FLOW_MONITOR_MENU.get(), FlowMonitorScreen::new);
+        event.register(ModMenus.FLOW_DETECTOR_MENU.get(), FlowDetectorScreen::new);
     }
 
     @SubscribeEvent

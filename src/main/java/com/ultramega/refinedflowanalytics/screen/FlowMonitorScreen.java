@@ -6,7 +6,7 @@ import com.ultramega.refinedflowanalytics.container.FlowMonitorProperties;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.GranularitySideButtonWidget;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.LineStyleSideButtonWidget;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.MonitorDisplaySideButtonWidget;
-import com.ultramega.refinedflowanalytics.screen.sidebuttons.MonitorFlowText;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.FlowDirection;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.MonitorItemVisibility;
 
 import com.refinedmods.refinedstorage.common.support.AbstractBaseScreen;
@@ -49,8 +49,8 @@ public class FlowMonitorScreen extends AbstractBaseScreen<FlowMonitorContainerMe
         ));
         this.addSideButton(new MonitorDisplaySideButtonWidget<>(FlowMonitorBlockEntity.FLOW_TEXT_TAG,
             this.getMenu().getProperty(FlowMonitorProperties.FLOW_TEXT),
-            MonitorFlowText.values(),
-            MonitorFlowText::getSprite
+            FlowDirection.values(),
+            FlowDirection::getSprite
         ));
         this.addSideButton(new GranularitySideButtonWidget(
             this.getMenu().getProperty(FlowMonitorProperties.GRANULARITY)

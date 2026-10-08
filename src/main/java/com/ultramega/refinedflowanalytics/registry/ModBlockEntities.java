@@ -1,5 +1,6 @@
 package com.ultramega.refinedflowanalytics.registry;
 
+import com.ultramega.refinedflowanalytics.block.entity.FlowDetectorBlockEntity;
 import com.ultramega.refinedflowanalytics.block.entity.FlowGridBlockEntity;
 import com.ultramega.refinedflowanalytics.block.entity.FlowMonitorBlockEntity;
 
@@ -30,6 +31,11 @@ public class ModBlockEntities {
         ModBlocks.FLOW_MONITOR.get()
     ).build(null));
 
+    public static final Supplier<BlockEntityType<FlowDetectorBlockEntity>> FLOW_DETECTOR = REGISTRY.register("flow_detector", () -> BlockEntityType.Builder.of(
+        FlowDetectorBlockEntity::new,
+        ModBlocks.INSTANCE.getFlowDetector().toArray()
+    ).build(null));
+
     private ModBlockEntities() {
     }
 
@@ -43,6 +49,11 @@ public class ModBlockEntities {
         event.registerBlockEntity(
             RefinedStorageNeoForgeApi.INSTANCE.getNetworkNodeContainerProviderCapability(),
             FLOW_MONITOR.get(),
+            (be, side) -> be.getContainerProvider()
+        );
+        event.registerBlockEntity(
+            RefinedStorageNeoForgeApi.INSTANCE.getNetworkNodeContainerProviderCapability(),
+            FLOW_DETECTOR.get(),
             (be, side) -> be.getContainerProvider()
         );
     }

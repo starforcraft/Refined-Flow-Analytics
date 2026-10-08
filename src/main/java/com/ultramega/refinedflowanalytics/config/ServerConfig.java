@@ -10,18 +10,24 @@ public final class ServerConfig { //TODO: change to interface configs
     private final ModConfigSpec spec;
     private final ModConfigSpec.LongValue flowGridEnergyUsage;
     private final ModConfigSpec.LongValue flowMonitorEnergyUsage;
+    private final ModConfigSpec.LongValue flowDetectorEnergyUsage;
 
     private ServerConfig() {
         final ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
 
         builder.push("flowGrid");
-        this.flowGridEnergyUsage = builder.comment("Energy consumed per tick by each Flow Grid. Set to 0 to disable energy consumption.")
+        this.flowGridEnergyUsage = builder.comment("Energy consumed per tick by each Flow Grid. Set to 0 to disable energy consumption.") //TODO: switch to .translation
             .defineInRange("energyUsage", DefaultEnergyUsage.FLOW_GRID, 0L, Long.MAX_VALUE);
         builder.pop();
 
         builder.push("flowMonitor");
         this.flowMonitorEnergyUsage = builder.comment("Energy consumed per tick by each Flow Monitor. Set to 0 to disable energy consumption.")
             .defineInRange("energyUsage", DefaultEnergyUsage.FLOW_MONITOR, 0L, Long.MAX_VALUE);
+        builder.pop();
+
+        builder.push("flowDetector");
+        this.flowDetectorEnergyUsage = builder.comment("Energy consumed per tick by each Flow Detector. Set to 0 to disable energy consumption.")
+            .defineInRange("energyUsage", DefaultEnergyUsage.FLOW_DETECTOR, 0L, Long.MAX_VALUE);
         builder.pop();
 
         this.spec = builder.build();
@@ -33,6 +39,10 @@ public final class ServerConfig { //TODO: change to interface configs
 
     public long getFlowGridEnergyUsage() {
         return this.flowGridEnergyUsage.get();
+    }
+
+    public long getFlowDetectorEnergyUsage() {
+        return this.flowDetectorEnergyUsage.get();
     }
 
     public long getFlowMonitorEnergyUsage() {

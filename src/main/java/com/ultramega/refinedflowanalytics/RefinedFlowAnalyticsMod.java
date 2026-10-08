@@ -78,6 +78,19 @@ public class RefinedFlowAnalyticsMod {
         blocks.register("flow_monitor", FlowMonitorBlock::new);
         items.register("flow_monitor", () -> ModBlocks.FLOW_MONITOR.get().createBlockItem());
 
+        ModBlocks.INSTANCE.getFlowDetector().registerBlocks(new RegistryCallback<>() {
+            @Override
+            public <R extends Block> Supplier<R> register(final ResourceLocation id, final Supplier<R> factory) {
+                return blocks.register(id.getPath(), factory);
+            }
+        });
+        ModBlocks.INSTANCE.getFlowDetector().registerItems(new RegistryCallback<>() {
+            @Override
+            public <R extends Item> Supplier<R> register(final ResourceLocation id, final Supplier<R> factory) {
+                return items.register(id.getPath(), factory);
+            }
+        }, ModItems.INSTANCE::addFlowDetector);
+
         blocks.register(modEventBus);
         items.register(modEventBus);
     }

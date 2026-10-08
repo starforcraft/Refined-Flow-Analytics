@@ -16,6 +16,22 @@
     "refinedflowanalytics:green_flow_grid",
     "refinedflowanalytics:red_flow_grid",
     "refinedflowanalytics:black_flow_grid",
-    "refinedflowanalytics:flow_monitor"
+    "refinedflowanalytics:flow_monitor",
+    "refinedflowanalytics:white_flow_detector",
+    "refinedflowanalytics:orange_flow_detector",
+    "refinedflowanalytics:magenta_flow_detector",
+    "refinedflowanalytics:flow_detector",
+    "refinedflowanalytics:yellow_flow_detector",
+    "refinedflowanalytics:lime_flow_detector",
+    "refinedflowanalytics:pink_flow_detector",
+    "refinedflowanalytics:gray_flow_detector",
+    "refinedflowanalytics:light_gray_flow_detector",
+    "refinedflowanalytics:cyan_flow_detector",
+    "refinedflowanalytics:purple_flow_detector",
+    "refinedflowanalytics:blue_flow_detector",
+    "refinedflowanalytics:brown_flow_detector",
+    "refinedflowanalytics:green_flow_detector",
+    "refinedflowanalytics:red_flow_detector",
+    "refinedflowanalytics:black_flow_detector"
   ]
 }

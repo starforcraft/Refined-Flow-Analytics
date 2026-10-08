@@ -1,8 +1,10 @@
 package com.ultramega.refinedflowanalytics.registry;
 
+import com.ultramega.refinedflowanalytics.container.FlowDetectorContainerMenu;
 import com.ultramega.refinedflowanalytics.container.FlowGridContainerMenu;
 import com.ultramega.refinedflowanalytics.container.FlowMonitorContainerMenu;
 
+import com.refinedmods.refinedstorage.common.support.containermenu.SingleAmountData;
 import com.refinedmods.refinedstorage.common.support.resource.ResourceContainerData;
 
 import net.minecraft.core.registries.Registries;
@@ -22,6 +24,10 @@ public class ModMenus {
     public static final DeferredHolder<MenuType<?>, MenuType<FlowMonitorContainerMenu>> FLOW_MONITOR_MENU =
         REGISTRY.register("flow_monitor", () -> IMenuTypeExtension.create((id, inventory, buffer) ->
             new FlowMonitorContainerMenu(id, inventory, ResourceContainerData.STREAM_CODEC.decode(buffer))));
+
+    public static final DeferredHolder<MenuType<?>, MenuType<FlowDetectorContainerMenu>> FLOW_DETECTOR_MENU =
+        REGISTRY.register("flow_detector", () -> IMenuTypeExtension.create((id, inventory, buffer) ->
+            new FlowDetectorContainerMenu(id, inventory, SingleAmountData.STREAM_CODEC.decode(buffer))));
 
     private ModMenus() {
     }

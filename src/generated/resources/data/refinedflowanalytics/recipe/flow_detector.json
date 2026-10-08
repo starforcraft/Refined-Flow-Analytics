@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "refinedstorage:detector"
+    },
+    {
+      "item": "refinedstorage:advanced_processor"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "id": "refinedflowanalytics:flow_detector"
+  }
+}

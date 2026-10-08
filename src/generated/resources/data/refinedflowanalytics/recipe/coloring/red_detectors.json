@@ -1,0 +1,10 @@
+{
+  "type": "refinedstorage:recoloring",
+  "dye": {
+    "tag": "c:dyes/red"
+  },
+  "ingredient": {
+    "tag": "refinedflowanalytics:flow_detectors"
+  },
+  "result": "refinedflowanalytics:red_flow_detector"
+}

@@ -8,7 +8,7 @@ import com.ultramega.refinedflowanalytics.network.FlowHistoryNetworkComponent;
 import com.ultramega.refinedflowanalytics.registry.ModBlockEntities;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.Granularity;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.LineStyle;
-import com.ultramega.refinedflowanalytics.screen.sidebuttons.MonitorFlowText;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.FlowDirection;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.MonitorItemVisibility;
 
 import com.refinedmods.refinedstorage.common.api.support.resource.PlatformResourceKey;
@@ -52,7 +52,7 @@ public class FlowMonitorBlockEntity extends AbstractBaseNetworkNodeContainerBloc
 
     private final FilterWithFuzzyMode filter;
     private MonitorItemVisibility itemVisibility = MonitorItemVisibility.SHOW;
-    private MonitorFlowText flowText = MonitorFlowText.NET;
+    private FlowDirection flowText = FlowDirection.NET;
     private Granularity granularity = Granularity.SECOND;
     private LineStyle lineStyle = LineStyle.EXACT;
     private boolean loadingData;
@@ -125,11 +125,11 @@ public class FlowMonitorBlockEntity extends AbstractBaseNetworkNodeContainerBloc
         }
     }
 
-    public MonitorFlowText getFlowText() {
+    public FlowDirection getFlowText() {
         return this.flowText;
     }
 
-    public void setFlowText(final MonitorFlowText value) {
+    public void setFlowText(final FlowDirection value) {
         if (this.flowText != value) {
             this.flowText = Objects.requireNonNull(value);
             this.displaySettingsChanged();
@@ -214,7 +214,7 @@ public class FlowMonitorBlockEntity extends AbstractBaseNetworkNodeContainerBloc
             super.readConfiguration(tag, provider);
             this.filter.load(tag, provider);
             this.itemVisibility = FlowMonitorProperties.read(tag.getString(ITEM_VISIBILITY_TAG), MonitorItemVisibility.values(), MonitorItemVisibility.SHOW);
-            this.flowText = FlowMonitorProperties.read(tag.getString(FLOW_TEXT_TAG), MonitorFlowText.values(), MonitorFlowText.NET);
+            this.flowText = FlowMonitorProperties.read(tag.getString(FLOW_TEXT_TAG), FlowDirection.values(), FlowDirection.NET);
             this.granularity = FlowMonitorProperties.read(tag.getString(GRANULARITY_TAG), Granularity.values(), Granularity.SECOND);
             this.lineStyle = FlowMonitorProperties.read(tag.getString(LINE_STYLE_TAG), LineStyle.values(), LineStyle.EXACT);
         } finally {

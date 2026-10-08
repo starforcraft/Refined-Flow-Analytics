@@ -34,6 +34,7 @@ public class BlockTagsProvider extends TagsProvider<Block> {
     protected void addTags(final Provider provider) {
         this.markAsMineable(ModBlocks.INSTANCE.getFlowGrid());
         this.markAsMineable(ModBlocks.FLOW_MONITOR.get());
+        this.markAsMineable(ModBlocks.INSTANCE.getFlowDetector());
     }
 
     private void markAsMineable(final BlockColorMap<?, ?> map) {

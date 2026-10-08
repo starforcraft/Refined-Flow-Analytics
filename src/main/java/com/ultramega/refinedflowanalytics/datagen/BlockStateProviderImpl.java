@@ -1,13 +1,16 @@
 package com.ultramega.refinedflowanalytics.datagen;
 
+import com.ultramega.refinedflowanalytics.block.FlowDetectorBlock;
 import com.ultramega.refinedflowanalytics.registry.ModBlocks;
 
 import com.refinedmods.refinedstorage.common.support.AbstractActiveColoredDirectionalBlock;
 import com.refinedmods.refinedstorage.common.support.direction.BiDirection;
 import com.refinedmods.refinedstorage.common.support.direction.BiDirectionType;
+import com.refinedmods.refinedstorage.common.support.direction.DefaultDirectionType;
 
 import java.util.function.Supplier;
 
+import net.minecraft.core.Direction;
 import net.minecraft.data.PackOutput;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.DyeColor;
@@ -34,10 +37,32 @@ public final class BlockStateProviderImpl extends BlockStateProvider {
     protected void registerStatesAndModels() {
         this.registerFlowGrid();
         this.registerFlowMonitor();
+        this.registerFlowDetector();
     }
 
     private void registerFlowGrid() {
         ModBlocks.INSTANCE.getFlowGrid().forEach((color, id, block) -> this.configureActiveColoredDirectionalBlock(color, block, "flow_grid"));
+    }
+
+    private void registerFlowDetector() {
+        ModBlocks.INSTANCE.getFlowDetector().forEach((color, id, block) -> {
+            final ModelFile powered = this.modelFile(createFlowAnalyticsIdentifier("block/" + id.getPath()));
+            final ModelFile unpowered = this.modelFile(createFlowAnalyticsIdentifier("block/" + id.getPath() + "_unpowered"));
+            this.getVariantBuilder(block.get()).forAllStates(state -> {
+                final ConfiguredModel.Builder<?> model = ConfiguredModel.builder()
+                    .modelFile(state.getValue(FlowDetectorBlock.POWERED) ? powered : unpowered);
+                final Direction direction = state.getValue(DefaultDirectionType.FACE_CLICKED.getProperty());
+                switch (direction) {
+                    case DOWN -> { }
+                    case UP -> model.rotationX(180);
+                    case NORTH -> model.rotationX(90).rotationY(180);
+                    case SOUTH -> model.rotationX(90);
+                    case WEST -> model.rotationX(90).rotationY(90);
+                    case EAST -> model.rotationX(90).rotationY(270);
+                }
+                return model.build();
+            });
+        });
     }
 
     private void registerFlowMonitor() {

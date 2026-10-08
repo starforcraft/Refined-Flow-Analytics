@@ -44,15 +44,25 @@ public final class MainRecipeProvider extends RecipeProvider {
             .unlockedBy("has_advanced_processor", has(advancedProcessor))
             .save(output, createFlowAnalyticsIdentifier("flow_grid"));
 
+        ModBlocks.INSTANCE.getFlowGrid().forEach((color, id, block) ->
+            output.accept(this.recipeId(color, "grids"),
+                RecoloringRecipe.create(ModTags.FLOW_GRIDS, color, block.get()), null));
+
         ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, ModBlocks.FLOW_MONITOR.get())
             .requires(Blocks.INSTANCE.getStorageMonitor())
             .requires(advancedProcessor)
             .unlockedBy("has_storage_monitor", has(Blocks.INSTANCE.getStorageMonitor()))
             .save(output, createFlowAnalyticsIdentifier("flow_monitor"));
 
-        ModBlocks.INSTANCE.getFlowGrid().forEach((color, id, block) ->
-            output.accept(this.recipeId(color, "grids"),
-                RecoloringRecipe.create(ModTags.FLOW_GRIDS, color, block.get()), null));
+        ShapelessRecipeBuilder.shapeless(RecipeCategory.MISC, ModBlocks.INSTANCE.getFlowDetector().getDefault())
+            .requires(Blocks.INSTANCE.getDetector().getDefault())
+            .requires(advancedProcessor)
+            .unlockedBy("has_detector", has(Blocks.INSTANCE.getDetector().getDefault()))
+            .save(output, createFlowAnalyticsIdentifier("flow_detector"));
+
+        ModBlocks.INSTANCE.getFlowDetector().forEach((color, id, block) ->
+            output.accept(this.recipeId(color, "detectors"),
+                RecoloringRecipe.create(ModTags.FLOW_DETECTORS, color, block.get()), null));
     }
 
     private ResourceLocation recipeId(final DyeColor color, final String suffix) {

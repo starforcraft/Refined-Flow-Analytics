@@ -1,0 +1,36 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="GPL"
+
+[[mods]]
+modId="refinedflowanalytics"
+version="${version}"
+displayName="Refined Flow Analytics"
+displayURL="https://github.com/starforcraft/Refined-Flow-Analytics"
+logoFile="logo.png"
+authors="Ultramega, XaMi"
+description="Track and visualize resource movement within your Refined Storage network!"
+
+[[mixins]]
+config="refinedflowanalytics.mixins.json"
+
+[[dependencies.refinedflowanalytics]]
+    modId="neoforge"
+    type="required"
+    versionRange="[21.1.200,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.refinedflowanalytics]]
+    modId="minecraft"
+    type="required"
+    versionRange="[1.21.1]"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.refinedflowanalytics]]
+    modId="refinedstorage"
+    type="required"
+    versionRange="[2.0.9,)"
+    ordering="NONE"
+    side="BOTH"

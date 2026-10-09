@@ -1,0 +1,163 @@
+package com.ultramega.refinedflowanalytics.block;
+
+import com.ultramega.refinedflowanalytics.block.entity.FlowDetectorBlockEntity;
+import com.ultramega.refinedflowanalytics.registry.ModBlockEntities;
+import com.ultramega.refinedflowanalytics.registry.ModBlocks;
+
+import com.refinedmods.refinedstorage.common.content.BlockColorMap;
+import com.refinedmods.refinedstorage.common.content.BlockConstants;
+import com.refinedmods.refinedstorage.common.support.AbstractBlockEntityTicker;
+import com.refinedmods.refinedstorage.common.support.AbstractDirectionalBlock;
+import com.refinedmods.refinedstorage.common.support.BaseBlockItem;
+import com.refinedmods.refinedstorage.common.support.BlockItemProvider;
+import com.refinedmods.refinedstorage.common.support.ColorableBlock;
+import com.refinedmods.refinedstorage.common.support.NetworkNodeBlockItem;
+import com.refinedmods.refinedstorage.common.support.direction.DefaultDirectionType;
+import com.refinedmods.refinedstorage.common.support.direction.DirectionType;
+import com.refinedmods.refinedstorage.common.support.network.NetworkNodeBlockEntityTicker;
+
+import javax.annotation.Nullable;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.SimpleWaterloggedBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
+
+import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsTranslation;
+
+public class FlowDetectorBlock extends AbstractDirectionalBlock<Direction>
+    implements SimpleWaterloggedBlock, EntityBlock, BlockItemProvider<BaseBlockItem>, ColorableBlock<FlowDetectorBlock, BaseBlockItem> {
+    public static final BooleanProperty POWERED = BooleanProperty.create("powered");
+
+    private static final Component HELP = createFlowAnalyticsTranslation("item", "flow_detector.help");
+    private static final AbstractBlockEntityTicker<FlowDetectorBlockEntity> TICKER = new NetworkNodeBlockEntityTicker<>(ModBlockEntities::getFlowDetector);
+
+    private static final VoxelShape SHAPE_DOWN = box(0, 0, 0, 16, 5, 16);
+    private static final VoxelShape SHAPE_UP = box(0, 11, 0, 16, 16, 16);
+    private static final VoxelShape SHAPE_NORTH = box(0, 0, 0, 16, 16, 5);
+    private static final VoxelShape SHAPE_EAST = box(11, 0, 0, 16, 16, 16);
+    private static final VoxelShape SHAPE_SOUTH = box(0, 0, 11, 16, 16, 16);
+    private static final VoxelShape SHAPE_WEST = box(0, 0, 0, 5, 16, 16);
+
+    private final DyeColor color;
+    private final MutableComponent name;
+
+    public FlowDetectorBlock(final DyeColor color, final MutableComponent name) {
+        super(BlockConstants.PROPERTIES);
+        this.color = color;
+        this.name = name;
+    }
+
+    @Override
+    public DyeColor getColor() {
+        return this.color;
+    }
+
+    @Override
+    public BlockColorMap<FlowDetectorBlock, BaseBlockItem> getBlockColorMap() {
+        return ModBlocks.INSTANCE.getFlowDetector();
+    }
+
+    @Override
+    public MutableComponent getName() {
+        return this.name;
+    }
+
+    @Override
+    protected BlockState getDefaultState() {
+        return super.getDefaultState()
+            .setValue(BlockStateProperties.WATERLOGGED, false)
+            .setValue(POWERED, false);
+    }
+
+    @Override
+    public boolean propagatesSkylightDown(final BlockState state, final BlockGetter blockGetter, final BlockPos pos) {
+        return !state.getValue(BlockStateProperties.WATERLOGGED);
+    }
+
+    @Override
+    public FluidState getFluidState(final BlockState state) {
+        return state.getValue(BlockStateProperties.WATERLOGGED)
+            ? Fluids.WATER.getSource(false)
+            : super.getFluidState(state);
+    }
+
+    @Override
+    protected DirectionType<Direction> getDirectionType() {
+        return DefaultDirectionType.FACE_CLICKED;
+    }
+
+    @Override
+    protected void createBlockStateDefinition(final StateDefinition.Builder<Block, BlockState> builder) {
+        super.createBlockStateDefinition(builder);
+        builder.add(POWERED);
+        builder.add(BlockStateProperties.WATERLOGGED);
+    }
+
+    @Override
+    public VoxelShape getShape(final BlockState state,
+                               final BlockGetter world,
+                               final BlockPos pos,
+                               final CollisionContext context) {
+        final Direction direction = this.getDirection(state);
+        if (direction == null) {
+            return SHAPE_DOWN;
+        }
+        return switch (direction) {
+            case DOWN -> SHAPE_DOWN;
+            case UP -> SHAPE_UP;
+            case NORTH -> SHAPE_NORTH;
+            case SOUTH -> SHAPE_SOUTH;
+            case WEST -> SHAPE_WEST;
+            case EAST -> SHAPE_EAST;
+        };
+    }
+
+    @Override
+    public BlockEntity newBlockEntity(final BlockPos pos, final BlockState state) {
+        return new FlowDetectorBlockEntity(pos, state);
+    }
+
+    @Override
+    @Nullable
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(final Level level,
+                                                                  final BlockState state,
+                                                                  final BlockEntityType<T> blockEntityType) {
+        return TICKER.get(level, blockEntityType);
+    }
+
+    @Override
+    public boolean isSignalSource(final BlockState state) {
+        return true;
+    }
+
+    @Override
+    public int getSignal(final BlockState state,
+                         final BlockGetter world,
+                         final BlockPos pos,
+                         final Direction side) {
+        return state.getValue(POWERED) ? 15 : 0;
+    }
+
+    @Override
+    public BaseBlockItem createBlockItem() {
+        return new NetworkNodeBlockItem(this, HELP);
+    }
+}

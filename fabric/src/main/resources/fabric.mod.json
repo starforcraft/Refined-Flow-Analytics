@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "id": "refinedflowanalytics",
+  "version": "${version}",
+  "name": "Refined Flow Analytics",
+  "description": "Track and visualize resource movement within your Refined Storage network!",
+  "authors": [
+    "Ultramega",
+    "XaMi"
+  ],
+  "contact": {
+    "sources": "https://github.com/starforcraft/Refined-Flow-Analytics",
+    "issues": "https://github.com/starforcraft/Refined-Flow-Analytics/issues"
+  },
+  "license": "GPL",
+  "icon": "logo.png",
+  "environment": "*",
+  "entrypoints": {
+    "refinedstorage_plugin": [
+      "com.ultramega.refinedflowanalytics.fabric.ModInitializerImpl"
+    ],
+    "client": [
+      "com.ultramega.refinedflowanalytics.fabric.ClientModInitializerImpl"
+    ],
+    "modmenu": [
+      "com.ultramega.refinedflowanalytics.fabric.ModMenuIntegration"
+    ]
+  },
+  "custom": {
+    "modmenu": {
+      "links": {
+        "modmenu.discord": "https://discord.gg/WpUmcmUayN"
+      },
+      "parent": "refinedstorage"
+    }
+  },
+  "mixins": [
+    "refinedflowanalytics.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.17.2",
+    "fabric-api": "*",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "refinedstorage": ">=2.0.9",
+    "cloth-config2": "*"
+  },
+  "suggests": {
+    "modmenu": "*"
+  }
+}

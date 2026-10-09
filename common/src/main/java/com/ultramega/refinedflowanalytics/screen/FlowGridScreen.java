@@ -1,0 +1,641 @@
+package com.ultramega.refinedflowanalytics.screen;
+
+import com.ultramega.refinedflowanalytics.Platform;
+import com.ultramega.refinedflowanalytics.container.FlowGridContainerMenu;
+import com.ultramega.refinedflowanalytics.data.FlowEstimate;
+import com.ultramega.refinedflowanalytics.network.MenuState;
+import com.ultramega.refinedflowanalytics.resource.ResourceChangeGranularityKey;
+import com.ultramega.refinedflowanalytics.screen.components.FlowGraph;
+import com.ultramega.refinedflowanalytics.screen.components.FlowItemButton;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.Granularity;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.GranularitySideButtonWidget;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.LineStyleSideButtonWidget;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.ResourceView;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.ResourceViewSideButtonWidget;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.SortingDirection;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.SortingDirectionSideButtonWidget;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.SortingType;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.SortingTypeSideButtonWidget;
+import com.ultramega.refinedflowanalytics.util.TickScheduler;
+
+import com.refinedmods.refinedstorage.common.api.RefinedStorageClientApi;
+import com.refinedmods.refinedstorage.common.api.support.resource.PlatformResourceKey;
+import com.refinedmods.refinedstorage.common.api.support.resource.ResourceRendering;
+import com.refinedmods.refinedstorage.common.support.AbstractBaseScreen;
+import com.refinedmods.refinedstorage.common.support.resource.FluidResource;
+import com.refinedmods.refinedstorage.common.support.resource.ItemResource;
+import com.refinedmods.refinedstorage.common.support.widget.History;
+import com.refinedmods.refinedstorage.common.support.widget.ScrollbarWidget;
+import com.refinedmods.refinedstorage.common.support.widget.SearchFieldWidget;
+import com.refinedmods.refinedstorage.common.support.widget.SearchIconWidget;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import javax.annotation.Nullable;
+
+import com.mojang.blaze3d.platform.Window;
+import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTextTooltip;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+
+import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsIdentifier;
+import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsTranslation;
+
+public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
+    private static final ResourceLocation GRID_DETAIL = createFlowAnalyticsIdentifier("textures/gui/flow_grid_detail.png");
+    private static final ResourceLocation GRID = createFlowAnalyticsIdentifier("textures/gui/flow_grid.png");
+
+    private static final int PRODUCTION_GREEN = 0xff00ff00;
+    private static final int CONSUMPTION_RED = 0xffff0000;
+    private static final int ESTIMATES_BLUE = 0xff66ddff;
+    private static final int WHITE = 0xffffffff;
+    private static final int GRAY = 0xffa0a0a0;
+
+    private static final int ITEM_HEADER_Y = 11;
+    private static final int ITEM_NAME_Y = 15;
+    private static final int GRAPH_X = 10;
+    private static final int GRAPH_BOTTOM = 134;
+
+    // Simple generation constants
+    private static final int ROW_HEIGHT = 25;
+    private static final int ROW_SPACING = ROW_HEIGHT - 1;
+    private static final int INNER_WIDTH = 222;
+    private static final int INNER_HEIGHT = 180;
+    private static final int NUMBER_OF_COLS = 3;
+
+    // Detailed generation constants
+    private static final int TEXT_LINE_HEIGHT = 12;
+
+    private final List<FlowItemButton> itemButtons = new ArrayList<>();
+    private final FlowGraph graph = new FlowGraph();
+    private final MenuRequestTracker requests = new MenuRequestTracker();
+    private FlowEstimate cachedEstimate = FlowEstimate.EMPTY;
+    @Nullable
+    private PlatformResourceKey cachedEstimateResource;
+    private String[] estimateLabels = new String[0];
+
+    private int innerLeft = this.leftPos + 8;
+    private int innerTop = this.topPos + 20;
+
+    private Button doneButton;
+    @Nullable
+    private ScrollbarWidget scrollbar;
+    private SearchFieldWidget searchField;
+    private TickScheduler tickScheduler;
+    private int refreshIntervalTicks;
+    private SearchIconWidget searchIcon;
+
+    private Map<PlatformResourceKey, Map<Short, Long>> lastSnapshot = new HashMap<>();
+
+    private boolean initialSnapshotReceived;
+    private boolean buttonsDirty = true;
+    @Nullable
+    private ListLayout buttonLayout;
+
+    private boolean showingDetails = false;
+    @Nullable
+    private PlatformResourceKey selectedResource;
+
+    public FlowGridScreen(final FlowGridContainerMenu container, final Inventory inventory, final Component text) {
+        super(container, inventory, text);
+        this.imageWidth = 256;
+        this.imageHeight = 231;
+
+        this.resetRefreshScheduler();
+    }
+
+    @Override
+    public void init() {
+        super.init();
+        this.doneButton = Button.builder(
+            Component.translatable("gui.done"),
+            b -> this.onClose()
+        ).bounds(this.leftPos + 198, this.topPos + 205, 46, 20).build();
+        this.addRenderableWidget(this.doneButton);
+
+        this.searchField = new SearchFieldWidget(this.font, this.leftPos + 97 + 1 + 58, this.topPos + 6 + 1, 67, new History(new ArrayList<>()));
+        this.addRenderableWidget(this.searchField);
+        this.searchIcon = this.addRenderableWidget(new SearchIconWidget(this.leftPos + 82 + 58, this.topPos + 5,
+            () -> createFlowAnalyticsTranslation("gui", "flow.search"), this.searchField));
+
+        this.scrollbar = new ScrollbarWidget(this.leftPos + 235, this.topPos + 20, ScrollbarWidget.Type.NORMAL, INNER_HEIGHT);
+        this.addRenderableWidget(this.scrollbar);
+
+        this.addSideButton(new SortingDirectionSideButtonWidget(this.getMenu()));
+        this.addSideButton(new SortingTypeSideButtonWidget(this.getMenu()));
+        this.addSideButton(new ResourceViewSideButtonWidget(this.getMenu(), this::onResourceViewChanged));
+        this.addSideButton(new GranularitySideButtonWidget(this.getMenu(), this::onGranularityChanged));
+        this.addSideButton(new LineStyleSideButtonWidget(this.getMenu()));
+        this.buttonLayout = null;
+        this.rebuildItemButtonsIfNeeded();
+        this.updateControlVisibility();
+        this.requestCurrentGenerationStats();
+    }
+
+    @Override
+    protected void containerTick() {
+        super.containerTick();
+        if (this.refreshIntervalTicks != this.getRefreshIntervalTicks()) {
+            this.resetRefreshScheduler();
+        }
+        if (this.tickScheduler.shouldRun()) {
+            this.requestCurrentGenerationStats();
+        }
+    }
+
+    private int getRefreshIntervalTicks() {
+        return Math.max(Platform.getClientConfig().getFlowGrid().getMinimumRefreshIntervalTicks(), this.getMenu().getGranularity().getTickAmount());
+    }
+
+    private void resetRefreshScheduler() {
+        this.refreshIntervalTicks = this.getRefreshIntervalTicks();
+        this.tickScheduler = new TickScheduler(this.refreshIntervalTicks);
+    }
+
+    private void renderDetailedGenerationStats(final GuiGraphics graphics, final int mouseX, final int mouseY) {
+        final Granularity granularity = this.getMenu().getGranularity();
+        RenderSystem.defaultBlendFunc();
+        graphics.pose().pushPose();
+        graphics.pose().translate(0, 0, 200);
+
+        this.graph.renderItem(graphics, this.leftPos + GRAPH_X, this.topPos + ITEM_HEADER_Y);
+        graphics.drawString(this.font, this.graph.getItemName(), this.leftPos + 35, this.topPos + ITEM_NAME_Y, WHITE);
+
+        final int graphLeft = this.leftPos + GRAPH_X;
+        final int graphBottom = this.topPos + GRAPH_BOTTOM;
+        final int graphWidth = this.graph.getGraphSize().x;
+        final int graphHeight = this.graph.getGraphSize().y;
+        this.graph.setGraphPos(graphLeft, graphBottom);
+        if (this.graph.isLoading()) {
+            final Component loadingText = createFlowAnalyticsTranslation("gui", "flow.loading");
+            graphics.drawCenteredString(this.font, loadingText, graphLeft + graphWidth / 2, graphBottom - graphHeight / 2 - this.font.lineHeight / 2, WHITE);
+            graphics.pose().popPose();
+            return;
+        }
+
+        this.graph.drawGraphs(graphics);
+
+        // Main stats
+        final PlatformResourceKey itemKey = this.graph.getItemKey();
+
+        final int productionRowShift = 2;
+        graphics.drawString(this.font,
+            createFlowAnalyticsTranslation("gui", "flow.inflow"),
+            graphLeft + productionRowShift, graphBottom + TEXT_LINE_HEIGHT + 2, PRODUCTION_GREEN);
+        graphics.drawString(this.font,
+            createFlowAnalyticsTranslation("gui", "flow.maximum", this.formatAmount(itemKey, this.graph.getMaxProduction()) + granularity.perStr()),
+            graphLeft + productionRowShift, graphBottom + 8 + TEXT_LINE_HEIGHT * 2, WHITE);
+        graphics.drawString(this.font,
+            createFlowAnalyticsTranslation("gui", "flow.minimum", this.formatAmount(itemKey, this.graph.getMinProduction()) + granularity.perStr()),
+            graphLeft + productionRowShift, graphBottom + 8 + TEXT_LINE_HEIGHT * 3, WHITE);
+
+        final int consumptionRowShift = 78;
+        graphics.drawString(this.font,
+            createFlowAnalyticsTranslation("gui", "flow.outflow"),
+            graphLeft + consumptionRowShift, graphBottom + TEXT_LINE_HEIGHT + 2, CONSUMPTION_RED);
+        graphics.drawString(this.font,
+            createFlowAnalyticsTranslation("gui", "flow.maximum", this.formatAmount(itemKey, this.graph.getMaxConsumption()) + granularity.perStr()),
+            graphLeft + consumptionRowShift, graphBottom + 8 + TEXT_LINE_HEIGHT * 2, WHITE);
+        graphics.drawString(this.font,
+            createFlowAnalyticsTranslation("gui", "flow.minimum", this.formatAmount(itemKey, this.graph.getMinConsumption()) + granularity.perStr()),
+            graphLeft + consumptionRowShift, graphBottom + 8 + TEXT_LINE_HEIGHT * 3, WHITE);
+
+        // Reference lines
+        graphics.drawString(this.font, createFlowAnalyticsTranslation("gui", "flow.average"),
+            graphLeft + graphWidth + 8, graphBottom - graphHeight - 14, WHITE);
+
+        final double incAvg = this.graph.getAvgProduction();
+        final double decAvg = this.graph.getAvgConsumption();
+        final int zeroY = (int) Math.round(this.graph.getGuiY(0));
+        final int incAvgY = (int) Math.round(this.graph.getGuiY(incAvg));
+        final int decAvgY = (int) Math.round(this.graph.getGuiY(-decAvg));
+        final int averageLabelX = graphLeft + graphWidth + 3;
+        // Leave room for the zero label, even when one or both averages are zero.
+        final int incLabelY = Math.clamp(incAvgY - 10, graphBottom - graphHeight, zeroY - 11);
+        final int decLabelY = Math.clamp(decAvgY + 2, zeroY + 2, graphBottom - this.font.lineHeight);
+        graphics.drawString(this.font, "+" + this.formatAmount(itemKey, (long) incAvg) + granularity.perStr(),
+            averageLabelX, incLabelY, PRODUCTION_GREEN);
+        graphics.drawString(this.font, "-" + this.formatAmount(itemKey, (long) decAvg) + granularity.perStr(),
+            averageLabelX, decLabelY, CONSUMPTION_RED);
+        graphics.drawString(this.font, "0", averageLabelX, zeroY - 4, GRAY);
+
+        // Estimates
+        final int estimatesRowShift = 160;
+        graphics.drawString(this.font, createFlowAnalyticsTranslation("gui", "flow.estimates"),
+            graphLeft + estimatesRowShift, graphBottom + 25, ESTIMATES_BLUE);
+        final FlowEstimate estimate = this.graph.getEstimate();
+        this.updateEstimateLabels(itemKey, estimate);
+        graphics.drawString(this.font, this.estimateLabels[0], graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 3, WHITE);
+        graphics.drawString(this.font, this.estimateLabels[1], graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 4, WHITE);
+        graphics.drawString(this.font, this.estimateLabels[2], graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 5, WHITE);
+        graphics.drawString(this.font, this.estimateLabels[3], graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 6, WHITE);
+
+        // Overall stats
+        final long net = Arrays.stream(this.graph.getNetData()).sum();
+        graphics.drawString(this.font, createFlowAnalyticsTranslation("gui", "flow.total_stored", this.graph.getTotalStored()), graphLeft + productionRowShift,
+            graphBottom + 4 + TEXT_LINE_HEIGHT * 5, WHITE);
+        graphics.drawString(this.font, createFlowAnalyticsTranslation("gui", "flow.net_timeframe", (net > 0 ? "+" : "") + this.formatAmount(itemKey, net)),
+            graphLeft + productionRowShift, graphBottom + 4 + TEXT_LINE_HEIGHT * 6, WHITE);
+
+        graphics.pose().popPose();
+    }
+
+    private void renderSimpleGenerationStats(final GuiGraphics graphics, final int mouseX, final int mouseY) {
+        RenderSystem.setShaderColor(1, 1, 1, 1);
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+
+        this.innerLeft = this.leftPos + 8;
+        this.innerTop = this.topPos + 20;
+        this.enableScissorFromGui(this.innerLeft - 1, this.innerTop - 1, INNER_WIDTH + 1, INNER_HEIGHT + 1);
+
+        final FlowItemButton hoveredButton = this.findHoveredItemButton(mouseX, mouseY);
+        for (final FlowItemButton button : this.itemButtons) {
+            if (button != hoveredButton) {
+                button.render(graphics, false);
+            }
+        }
+        // Draw the hovered button last so its shared border stays highlighted
+        if (hoveredButton != null) {
+            hoveredButton.render(graphics, true);
+        }
+
+        RenderSystem.disableScissor();
+        RenderSystem.disableBlend();
+    }
+
+    private void rebuildItemButtonsIfNeeded() {
+        if (!this.initialSnapshotReceived || this.showingDetails || this.scrollbar == null) {
+            return;
+        }
+        final ListLayout layout = this.currentListLayout();
+        if (!this.buttonsDirty && layout.equals(this.buttonLayout)) {
+            return;
+        }
+        this.innerLeft = this.leftPos + 8;
+        this.innerTop = this.topPos + 20;
+        final var sorted = this.getMenu().getSortingDirection().sort(this.getMenu().getSortingType().sort(this.lastSnapshot));
+        final List<Map.Entry<PlatformResourceKey, Map<Short, Long>>> filtered = new ArrayList<>();
+        for (final var entry : sorted.entrySet()) {
+            final ResourceRendering rendering = RefinedStorageClientApi.INSTANCE.getResourceRendering(entry.getKey().getClass());
+            if (layout.query().isEmpty()
+                || rendering.getDisplayName(entry.getKey()).getString().toLowerCase(Locale.ROOT).contains(layout.query())) {
+                filtered.add(entry);
+            }
+        }
+        final int rows = (filtered.size() + NUMBER_OF_COLS - 1) / NUMBER_OF_COLS;
+        final int maxOffset = Math.max(0, rows * ROW_SPACING - INNER_HEIGHT);
+        this.scrollbar.setEnabled(maxOffset > 0);
+        this.scrollbar.setMaxOffset(maxOffset);
+        this.scrollbar.setOffset(Math.clamp(this.scrollbar.getOffset(), 0, maxOffset));
+        final int offset = (int) this.scrollbar.getOffset();
+        final int rowWidth = INNER_WIDTH / NUMBER_OF_COLS + 1;
+        this.itemButtons.clear();
+        for (int i = 0; i < filtered.size(); i++) {
+            final int y = this.innerTop + (i / NUMBER_OF_COLS) * ROW_SPACING - offset;
+            if (y >= this.innerTop + INNER_HEIGHT) {
+                break;
+            }
+            if (y + ROW_HEIGHT <= this.innerTop) {
+                continue;
+            }
+            final var entry = filtered.get(i);
+            final PlatformResourceKey resource = entry.getKey();
+            final ResourceRendering rendering = RefinedStorageClientApi.INSTANCE.getResourceRendering(resource.getClass());
+            final int x = this.innerLeft + (i % NUMBER_OF_COLS) * (rowWidth - 1);
+            this.itemButtons.add(new FlowItemButton(x - 1, y - 1, rowWidth, ROW_HEIGHT,
+                resource, entry.getValue(), layout.granularity(), () -> this.openDetails(resource),
+                List.of(new ClientTextTooltip(rendering.getDisplayName(resource).getVisualOrderText()))));
+        }
+        this.buttonLayout = this.currentListLayout();
+        this.buttonsDirty = false;
+    }
+
+    private ListLayout currentListLayout() {
+        return new ListLayout(this.searchField.getValue().toLowerCase(Locale.ROOT), this.getMenu().getSortingType(),
+            this.getMenu().getSortingDirection(), this.getMenu().getGranularity(), this.leftPos, this.topPos,
+            this.scrollbar == null ? 0 : (int) this.scrollbar.getOffset());
+    }
+
+    private void requestCurrentGenerationStats() {
+        final Player player = this.getMenu().entity;
+        if (player.containerMenu == this.getMenu()) {
+            final int granularity = this.getMenu().getGranularity().getTickAmount();
+            final MenuState state;
+            if (this.showingDetails) {
+                final PlatformResourceKey resource = this.selectedResource;
+                if (resource == null) {
+                    return;
+                }
+                state = new MenuState.DetailedRequest(resource, granularity);
+            } else {
+                state = new MenuState.SnapshotRequest(granularity, this.getMenu().getResourceView() == ResourceView.ALL_STORED);
+            }
+            final long requestId = this.requests.tryStartRequest();
+            if (requestId == -1) {
+                return;
+            }
+            this.getMenu().sendMenuStateUpdate(player, requestId, state);
+        }
+    }
+
+    private void openDetails(final PlatformResourceKey resource) {
+        this.selectedResource = resource;
+        this.showingDetails = true;
+        this.graph.beginLoading(resource, this.getMenu().getGranularity());
+        this.requests.invalidate();
+        this.updateControlVisibility();
+        this.requestCurrentGenerationStats();
+    }
+
+    private void returnToList() {
+        this.showingDetails = false;
+        this.requests.invalidate();
+        this.updateControlVisibility();
+        this.requestCurrentGenerationStats();
+    }
+
+    private void onResourceViewChanged() {
+        this.lastSnapshot = new HashMap<>();
+        this.buttonsDirty = true;
+        this.itemButtons.clear();
+        if (this.scrollbar != null) {
+            this.scrollbar.setOffset(0);
+        }
+        this.requests.invalidate();
+        this.requestCurrentGenerationStats();
+    }
+
+    private void onGranularityChanged() {
+        this.resetRefreshScheduler();
+        this.requests.invalidate();
+        final PlatformResourceKey resource = this.selectedResource;
+        if (this.showingDetails && resource != null) {
+            this.graph.beginLoading(resource, this.getMenu().getGranularity());
+        } else {
+            this.lastSnapshot = new HashMap<>();
+            this.buttonsDirty = true;
+        }
+        this.requestCurrentGenerationStats();
+    }
+
+    public void updateMenuState(final long requestId, final MenuState state) {
+        final MenuRequestTracker.Completion completion = this.requests.complete(requestId);
+        if (completion == MenuRequestTracker.Completion.IGNORED) {
+            return;
+        }
+        if (completion == MenuRequestTracker.Completion.OBSOLETE) {
+            // Navigation is coalesced while waiting; now fetch only the latest requested view
+            this.requestCurrentGenerationStats();
+            return;
+        }
+        if (state instanceof MenuState.DetailedSnapshot(Map<ResourceChangeGranularityKey, long[]> data)) {
+            final PlatformResourceKey resource = this.selectedResource;
+            if (!this.showingDetails || resource == null
+                || data.keySet().stream().anyMatch(key -> key.granularity() != this.getMenu().getGranularity().getTickAmount()
+                    || !key.resourceKey().equals(resource))) {
+                return;
+            }
+            final Map<ResourceChangeGranularityKey, long[]> graphData = data.isEmpty()
+                ? Map.of(new ResourceChangeGranularityKey(resource, (short) 0, this.getMenu().getGranularity().getTickAmount()), new long[]{0}) : data;
+            this.graph.setData(graphData, this.getMenu().getGranularity());
+        } else if (state instanceof MenuState.Snapshot(int granularity, boolean allStored, Map<PlatformResourceKey, Map<Short, Long>> data)
+            && !this.showingDetails
+            && granularity == this.getMenu().getGranularity().getTickAmount()
+            && allStored == (this.getMenu().getResourceView() == ResourceView.ALL_STORED)) {
+            this.buttonsDirty |= !this.lastSnapshot.equals(data);
+            this.lastSnapshot = data;
+            this.initialSnapshotReceived = true;
+            this.rebuildItemButtonsIfNeeded();
+            this.updateControlVisibility();
+        }
+    }
+
+    @Override
+    public boolean mouseClicked(final double mouseX, final double mouseY, final int button) {
+        if (!this.initialSnapshotReceived) {
+            return false;
+        }
+        this.rebuildItemButtonsIfNeeded();
+        if (this.showingDetails) {
+            // back button
+            if (button == 3) {
+                this.returnToList();
+                return true;
+            }
+            if (this.graph.mouseClicked(mouseX, mouseY, button)) {
+                return true;
+            }
+        } else {
+            // forward button
+            if (button == 4) {
+                final PlatformResourceKey resource = this.selectedResource;
+                if (resource != null) {
+                    this.openDetails(resource);
+                }
+                return true;
+            }
+            final FlowItemButton hoveredButton = this.findHoveredItemButton(mouseX, mouseY);
+            if (hoveredButton != null && hoveredButton.mouseClicked(mouseX, mouseY, button)) {
+                return true;
+            }
+        }
+
+        if (this.scrollbar != null && this.scrollbar.visible && this.scrollbar.mouseClicked(mouseX, mouseY, button)) {
+            return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public void mouseMoved(final double mx, final double my) {
+        if (this.scrollbar != null && this.scrollbar.visible) {
+            this.scrollbar.mouseMoved(mx, my);
+        }
+        super.mouseMoved(mx, my);
+    }
+
+    @Override
+    public boolean mouseReleased(final double mx, final double my, final int button) {
+        if (this.scrollbar != null && this.scrollbar.visible && this.scrollbar.mouseReleased(mx, my, button)) {
+            return true;
+        }
+        if (this.showingDetails) {
+            if (this.graph.mouseReleased(mx, my, button)) {
+                return true;
+            }
+        }
+        return super.mouseReleased(mx, my, button);
+    }
+
+    @Override
+    public boolean mouseScrolled(final double x, final double y, final double z, final double delta) {
+        final boolean didScroll = this.scrollbar != null
+            && this.isHoveringOverArea(x, y)
+            && this.scrollbar.mouseScrolled(x, y, z, delta);
+        return didScroll || super.mouseScrolled(x, y, z, delta);
+    }
+
+    @Override
+    public void onClose() {
+        if (this.showingDetails) {
+            this.returnToList();
+            return;
+        }
+        this.requests.invalidate();
+        super.onClose();
+    }
+
+    @Nullable
+    private FlowItemButton findHoveredItemButton(final double mouseX, final double mouseY) {
+        if (!this.isHoveringOverArea(mouseX, mouseY)) {
+            return null;
+        }
+        for (final FlowItemButton button : this.itemButtons.reversed()) {
+            if (button.isMouseOver(mouseX, mouseY)) {
+                return button;
+            }
+        }
+        return null;
+    }
+
+    private boolean isHoveringOverArea(final double x, final double y) {
+        return !this.showingDetails && this.isHovering(7, 19, INNER_WIDTH + 1, INNER_HEIGHT + 1, x, y);
+    }
+
+    private String formatAmount(final PlatformResourceKey resourceKey, final long amount) {
+        return RefinedStorageClientApi.INSTANCE.getResourceRendering(resourceKey.getClass()).formatAmount(amount, true);
+    }
+
+    private void updateEstimateLabels(final PlatformResourceKey resourceKey, final FlowEstimate estimate) {
+        if (estimate.equals(this.cachedEstimate) && resourceKey.equals(this.cachedEstimateResource)) {
+            return;
+        }
+        this.cachedEstimate = estimate;
+        this.cachedEstimateResource = resourceKey;
+        this.estimateLabels = new String[]{
+            this.formatEstimate(resourceKey, estimate, Granularity.SECOND),
+            this.formatEstimate(resourceKey, estimate, Granularity.MINUTE),
+            this.formatEstimate(resourceKey, estimate, Granularity.HOUR),
+            this.formatEstimate(resourceKey, estimate, Granularity.DAY)
+        };
+    }
+
+    private String formatEstimate(final PlatformResourceKey resourceKey, final FlowEstimate estimate, final Granularity target) {
+        if (!estimate.available()) {
+            return "—" + target.perStr();
+        }
+        final double amount = estimate.forTicks(target.getTickAmount());
+        final double magnitude = Math.abs(amount);
+        final String formatted;
+        if (resourceKey instanceof ItemResource && magnitude < 1000) {
+            formatted = FlowEstimate.formatNumber(magnitude);
+        } else if (resourceKey instanceof FluidResource && magnitude < 1000) {
+            formatted = FlowEstimate.formatNumber(resourceKey.getResourceType().getDisplayAmount(1) * magnitude) + " B";
+        } else if (magnitude > 0 && magnitude < 1000 && magnitude != Math.rint(magnitude)) {
+            formatted = FlowEstimate.formatNumber(magnitude) + " × " + this.formatAmount(resourceKey, 1);
+        } else {
+            formatted = this.formatAmount(resourceKey, Math.round(magnitude));
+        }
+        return (amount < 0 ? "-" : amount > 0 ? "+" : "") + formatted + target.perStr();
+    }
+
+    public void enableScissorFromGui(final int guiX, final int guiY, final int guiWidth, final int guiHeight) {
+        final Minecraft mc = Minecraft.getInstance();
+        final Window window = mc.getWindow();
+        final double scale = window.getGuiScale();
+
+        final int x = (int) (guiX * scale);
+        final int y = (int) (window.getHeight() - (guiY + guiHeight) * scale);
+        final int width = (int) (guiWidth * scale);
+        final int height = (int) (guiHeight * scale);
+
+        RenderSystem.enableScissor(x, y, width, height);
+    }
+
+    @Override
+    public void render(final GuiGraphics graphics, final int mouseX, final int mouseY, final float partialTicks) {
+        if (!this.initialSnapshotReceived) {
+            graphics.fill(0, 0, this.width, this.height, 0x88000000);
+            return;
+        }
+        this.rebuildItemButtonsIfNeeded();
+        this.updateControlVisibility();
+        super.render(graphics, mouseX, mouseY, partialTicks);
+    }
+
+    private void updateControlVisibility() {
+        final boolean showListControls = this.initialSnapshotReceived && !this.showingDetails;
+        this.searchField.visible = showListControls;
+        this.searchField.active = showListControls;
+        if (!showListControls) {
+            this.searchField.setFocused(false);
+        }
+        this.searchIcon.visible = showListControls;
+        this.doneButton.visible = showListControls;
+        if (this.scrollbar != null) {
+            this.scrollbar.visible = showListControls;
+        }
+    }
+
+    @Override
+    protected ResourceLocation getTexture() {
+        return this.showingDetails ? GRID_DETAIL : GRID;
+    }
+
+    @Override
+    protected void renderBg(final GuiGraphics graphics, final float partialTicks, final int mouseX, final int mouseY) {
+        if (!this.initialSnapshotReceived) {
+            return;
+        }
+        super.renderBg(graphics, partialTicks, mouseX, mouseY);
+        this.graph.lineStyle = this.getMenu().getLineStyle();
+        if (this.showingDetails) {
+            this.renderDetailedGenerationStats(graphics, mouseX, mouseY);
+        } else {
+            this.renderSimpleGenerationStats(graphics, mouseX, mouseY);
+        }
+    }
+
+    @Override
+    protected void renderLabels(final GuiGraphics graphics, final int mouseX, final int mouseY) {
+        if (!this.showingDetails) {
+            graphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 4210752, false);
+        }
+    }
+
+    @Override
+    protected void renderTooltip(final GuiGraphics graphics, final int mouseX, final int mouseY) {
+        if (this.showingDetails) {
+            this.graph.renderTooltip(graphics, mouseX, mouseY);
+            final Component heading = createFlowAnalyticsTranslation("gui", "flow.estimates");
+            if (!this.graph.isLoading() && this.isHovering(GRAPH_X + 160, GRAPH_BOTTOM + 25,
+                this.font.width(heading), this.font.lineHeight, mouseX, mouseY)) {
+                final FlowEstimate estimate = this.graph.getEstimate();
+                graphics.renderTooltip(this.font, estimate.available()
+                    ? createFlowAnalyticsTranslation("gui", "flow.estimates_window", estimate.observationWindow())
+                    : createFlowAnalyticsTranslation("gui", "flow.estimates_empty"), mouseX, mouseY);
+            }
+        } else {
+            final FlowItemButton hoveredButton = this.findHoveredItemButton(mouseX, mouseY);
+            if (hoveredButton != null) {
+                hoveredButton.renderTooltip(graphics, mouseX, mouseY);
+            }
+        }
+        super.renderTooltip(graphics, mouseX, mouseY);
+    }
+
+    private record ListLayout(String query, SortingType sortingType, SortingDirection sortingDirection,
+                              Granularity granularity, int left, int top, int scrollOffset) {
+    }
+}

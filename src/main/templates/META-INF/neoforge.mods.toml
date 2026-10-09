@@ -7,8 +7,12 @@ modId="${mod_id}"
 version="${mod_version}"
 displayName="Refined Flow Analytics"
 displayURL="https://github.com/starforcraft/Refined-Flow-Analytics"
+logoFile="logo.png"
 authors="Ultramega, XaMi"
-description="Tracks resource production and consumption in Refined Storage networks with live statistics and historical graphs."
+description="Track and visualize resource movement within your Refined Storage network!"
+
+[[mixins]]
+config="refinedflowanalytics.mixins.json"
 
 [[dependencies.${mod_id}]]
     modId="neoforge"
@@ -30,6 +34,3 @@ description="Tracks resource production and consumption in Refined Storage netwo
     versionRange="[2.0.9,)"
     ordering="NONE"
     side="BOTH"
-
-[[mixins]]
-    config="refinedflowanalytics.mixins.json"

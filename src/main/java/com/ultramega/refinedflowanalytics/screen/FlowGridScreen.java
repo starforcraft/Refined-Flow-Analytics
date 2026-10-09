@@ -2,6 +2,7 @@ package com.ultramega.refinedflowanalytics.screen;
 
 import com.ultramega.refinedflowanalytics.container.FlowGridContainerMenu;
 import com.ultramega.refinedflowanalytics.data.FlowEstimate;
+import com.ultramega.refinedflowanalytics.network.MenuState;
 import com.ultramega.refinedflowanalytics.resource.ResourceChangeGranularityKey;
 import com.ultramega.refinedflowanalytics.screen.components.FlowGraph;
 import com.ultramega.refinedflowanalytics.screen.components.FlowItemButton;
@@ -96,7 +97,7 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
 
     public FlowGridScreen(final FlowGridContainerMenu container, final Inventory inventory, final Component text) {
         super(container, inventory, text);
-        this.imageWidth = 254;
+        this.imageWidth = 256;
         this.imageHeight = 231;
 
         this.tickScheduler = new TickScheduler(container.getGranularity().getTickAmount());
@@ -105,12 +106,10 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
     @Override
     public void init() {
         super.init();
-        this.doneButton = Button.builder(Component.translatable("gui.done"), b -> {
-            if (this.minecraft == null || this.minecraft.player == null) {
-                return;
-            }
-            this.minecraft.player.closeContainer();
-        }).bounds(this.leftPos + 198, this.topPos + 205, 46, 20).build();
+        this.doneButton = Button.builder(
+            Component.translatable("gui.done"),
+            b -> this.onClose()
+        ).bounds(this.leftPos + 198, this.topPos + 205, 46, 20).build();
         this.addRenderableWidget(this.doneButton);
 
         this.searchField = new SearchFieldWidget(this.font, this.leftPos + 97 + 1 + 58, this.topPos + 6 + 1, 67, new History(new ArrayList<>()));
@@ -310,17 +309,15 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
             if (manual) {
                 this.graph.setLoading(true);
             }
-            this.getMenu().sendMenuStateUpdate(player, 5, "detailedFactoryGenerationRequest",
-                new ResourceChangeGranularityKey(itemKey, (short) 0, this.getMenu().getGranularity().getTickAmount()), false);
+            this.getMenu().sendMenuStateUpdate(player, new MenuState.DetailedRequest(itemKey, this.getMenu().getGranularity().getTickAmount()));
         }
     }
 
     private void requestSimpleGenerationStats() {
         final Player player = this.getMenu().entity;
         if (player.containerMenu == this.getMenu()) {
-            final String request = this.getMenu().getResourceView() == ResourceView.ALL_STORED
-                ? "storedFactoryGenerationRequest" : "simpleFactoryGenerationRequest";
-            this.getMenu().sendMenuStateUpdate(player, 4, request, this.getMenu().getGranularity().getTickAmount(), false);
+            this.getMenu().sendMenuStateUpdate(player, new MenuState.SnapshotRequest(
+                this.getMenu().getGranularity().getTickAmount(), this.getMenu().getResourceView() == ResourceView.ALL_STORED));
         }
     }
 
@@ -343,24 +340,22 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    public void updateMenuState(final int elementType, final String name, final Object elementState) { //TODO: rework this
-        if ("detailedFactoryGeneration".equals(name)) {
-            final Map<ResourceChangeGranularityKey, long[]> data = (Map<ResourceChangeGranularityKey, long[]>) elementState;
+    public void updateMenuState(final MenuState state) {
+        if (state instanceof MenuState.DetailedSnapshot(Map<ResourceChangeGranularityKey, long[]> data)) {
             if (data.isEmpty() || data.keySet().stream().anyMatch(key -> key.granularity() != this.getMenu().getGranularity().getTickAmount())) {
                 return;
             }
             this.graph.setData(data, this.getMenu().getGranularity());
             this.hasDetailedGenerationData = true;
-        } else if (("lastSnapshot".equals(name) && this.getMenu().getResourceView() == ResourceView.CHANGED)
-            || ("storedSnapshot".equals(name) && this.getMenu().getResourceView() == ResourceView.ALL_STORED)) {
-            this.lastSnapshot = (Map<PlatformResourceKey, Map<Short, Long>>) elementState;
+        } else if (state instanceof MenuState.Snapshot(int granularity, boolean allStored, Map<PlatformResourceKey, Map<Short, Long>> data)
+            && granularity == this.getMenu().getGranularity().getTickAmount()
+            && allStored == (this.getMenu().getResourceView() == ResourceView.ALL_STORED)) {
+            this.lastSnapshot = data;
         }
     }
 
     @Override
     public boolean mouseClicked(final double mouseX, final double mouseY, final int button) {
-        System.out.println(button);
         if (this.hasDetailedGenerationData) {
             // back button
             if (button == 3) {
@@ -418,16 +413,13 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
     }
 
     @Override
-    public boolean keyPressed(final int key, final int b, final int c) {
-        if (key == GLFW.GLFW_KEY_ESCAPE) {
-            if (this.hasDetailedGenerationData) {
-                this.hasDetailedGenerationData = false;
-            } else if (this.minecraft != null && this.minecraft.player != null) {
-                this.minecraft.player.closeContainer();
-            }
-            return true;
+    public void onClose() {
+        if (this.hasDetailedGenerationData) {
+            this.hasDetailedGenerationData = false;
+            this.updateControlVisibility();
+            return;
         }
-        return super.keyPressed(key, b, c);
+        super.onClose();
     }
 
     @Nullable

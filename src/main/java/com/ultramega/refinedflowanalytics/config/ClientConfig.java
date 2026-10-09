@@ -29,7 +29,7 @@ public final class ClientConfig {
         this.sortingType = builder.comment("Resource sorting criterion.")
             .defineEnum("sortingType", SortingType.QUANTITY);
         this.granularity = builder.comment("Time interval used for flow snapshots and graph points.")
-            .defineEnum("granularity", Granularity.MINUTE);
+            .defineEnum("granularity", Granularity.SECOND);
         this.lineStyle = builder.comment("Rendering style of the flow graph.")
             .defineEnum("lineStyle", LineStyle.EXACT);
         this.resourceView = builder.comment("Show changed resources or all resources currently stored in the network.")

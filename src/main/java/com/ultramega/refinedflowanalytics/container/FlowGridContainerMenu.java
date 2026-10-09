@@ -2,9 +2,9 @@ package com.ultramega.refinedflowanalytics.container;
 
 import com.ultramega.refinedflowanalytics.block.entity.FlowGridBlockEntity;
 import com.ultramega.refinedflowanalytics.config.ClientConfig;
+import com.ultramega.refinedflowanalytics.network.MenuState;
 import com.ultramega.refinedflowanalytics.network.MenuStateUpdateMessage;
 import com.ultramega.refinedflowanalytics.registry.ModMenus;
-import com.ultramega.refinedflowanalytics.registry.ModScreens;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.Granularity;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.LineStyle;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.ResourceView;
@@ -57,14 +57,11 @@ public class FlowGridContainerMenu extends AbstractContainerMenu {
         return ItemStack.EMPTY;
     }
 
-    public void sendMenuStateUpdate(final Player player, final int elementType, final String name, final Object elementState, final boolean needClientUpdate) {
-        final MenuStateUpdateMessage message = new MenuStateUpdateMessage(elementType, name, elementState);
+    public void sendMenuStateUpdate(final Player player, final MenuState state) {
+        final MenuStateUpdateMessage message = new MenuStateUpdateMessage(this.containerId, state);
         if (player instanceof ServerPlayer serverPlayer) {
             PacketDistributor.sendToPlayer(serverPlayer, message);
         } else if (player.level().isClientSide) {
-            if (needClientUpdate) {
-                ModScreens.updateMenuState(message);
-            }
             PacketDistributor.sendToServer(message);
         }
     }

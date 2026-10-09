@@ -96,7 +96,7 @@ publishMods {
 
     curseforge {
         accessToken = providers.environmentVariable("CURSEFORGE_TOKEN")
-        projectId = ""
+        projectId = "1733948"
         minecraftVersions.add(minecraft_version)
         displayName = file.map { it.asFile.name }
         client = true
@@ -106,7 +106,7 @@ publishMods {
 
     modrinth {
         accessToken = providers.environmentVariable("MODRINTH_TOKEN")
-        projectId = ""
+        projectId = "P12BuuzS"
         minecraftVersions.add(minecraft_version)
         requires("refined-storage")
     }

@@ -3,6 +3,7 @@ package com.ultramega.refinedflowanalytics.service;
 import com.ultramega.refinedflowanalytics.RefinedFlowAnalyticsMod;
 import com.ultramega.refinedflowanalytics.block.entity.FlowGridBlockEntity;
 import com.ultramega.refinedflowanalytics.container.FlowGridContainerMenu;
+import com.ultramega.refinedflowanalytics.network.MenuState;
 import com.ultramega.refinedflowanalytics.resource.ResourceChangeGranularityKey;
 import com.ultramega.refinedflowanalytics.resource.ResourceChangeKey;
 
@@ -28,7 +29,13 @@ public class SnapshotService {
                                final Entity entity,
                                final int granularity,
                                final boolean allStored) {
+        if (!(entity instanceof Player player) || !(player.containerMenu instanceof FlowGridContainerMenu menu)) {
+            return;
+        }
         RefinedFlowAnalyticsMod.queueServerWork(1, () -> {
+            if (player.containerMenu != menu || !menu.stillValid(player)) {
+                return;
+            }
             final BlockEntity blockEntity = (world.getBlockEntity(BlockPos.containing(x, y, z)));
             if (blockEntity instanceof FlowGridBlockEntity flowGrid && flowGrid.isActive()) {
                 final Map<ResourceChangeKey, Long> snapshotMap = flowGrid.getLastSnapshotAggregated(granularity);
@@ -48,9 +55,7 @@ public class SnapshotService {
                         data.putIfAbsent(resourceKey, Map.of((short) +1, 0L, (short) -1, 0L));
                     }
                 }
-                if (entity instanceof Player player && player.containerMenu instanceof FlowGridContainerMenu menu) {
-                    menu.sendMenuStateUpdate(player, 2, allStored ? "storedSnapshot" : "lastSnapshot", data, true);
-                }
+                menu.sendMenuStateUpdate(player, new MenuState.Snapshot(granularity, allStored, data));
             }
         });
     }
@@ -62,13 +67,17 @@ public class SnapshotService {
                                        final Entity entity,
                                        final PlatformResourceKey itemKey,
                                        final int granularity) {
+        if (!(entity instanceof Player player) || !(player.containerMenu instanceof FlowGridContainerMenu menu)) {
+            return;
+        }
         RefinedFlowAnalyticsMod.queueServerWork(1, () -> {
+            if (player.containerMenu != menu || !menu.stillValid(player)) {
+                return;
+            }
             final BlockEntity blockEntity = (world.getBlockEntity(BlockPos.containing(x, y, z)));
             if (blockEntity instanceof FlowGridBlockEntity flowGrid && flowGrid.isActive()) {
                 final Map<ResourceChangeGranularityKey, long[]> data = flowGrid.getDetailedSnapshot(itemKey, granularity);
-                if (entity instanceof Player player && player.containerMenu instanceof FlowGridContainerMenu menu) {
-                    menu.sendMenuStateUpdate(player, 3, "detailedFactoryGeneration", data, true);
-                }
+                menu.sendMenuStateUpdate(player, new MenuState.DetailedSnapshot(data));
             }
         });
     }

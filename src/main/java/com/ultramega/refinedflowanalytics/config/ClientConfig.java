@@ -19,6 +19,7 @@ public final class ClientConfig {
     private final ModConfigSpec.EnumValue<Granularity> granularity;
     private final ModConfigSpec.EnumValue<LineStyle> lineStyle;
     private final ModConfigSpec.EnumValue<ResourceView> resourceView;
+    private final ModConfigSpec.IntValue minimumRefreshIntervalTicks;
 
     private ClientConfig() {
         final ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -34,6 +35,10 @@ public final class ClientConfig {
             .defineEnum("lineStyle", LineStyle.EXACT);
         this.resourceView = builder.comment("Show changed resources or all resources currently stored in the network.")
             .defineEnum("resourceView", ResourceView.CHANGED);
+        this.minimumRefreshIntervalTicks = builder.comment(
+            "Minimum interval between periodic Flow Grid requests, in client ticks. Does not change recorded samples.",
+            "The refresh interval is the greater of this value and the selected granularity. 5 ticks is about 4 updates per second."
+        ).defineInRange("minimumRefreshIntervalTicks", 5, 1, 1200);
         builder.pop();
 
         this.spec = builder.build();
@@ -81,6 +86,10 @@ public final class ClientConfig {
 
     public void setResourceView(final ResourceView value) {
         this.setValue(this.resourceView, value);
+    }
+
+    public int getMinimumRefreshIntervalTicks() {
+        return this.minimumRefreshIntervalTicks.get();
     }
 
     private <T extends Enum<T>> void setValue(final ModConfigSpec.EnumValue<T> entry, final T value) {

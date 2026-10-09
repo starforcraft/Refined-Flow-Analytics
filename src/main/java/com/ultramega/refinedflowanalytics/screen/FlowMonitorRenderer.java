@@ -126,18 +126,18 @@ public class FlowMonitorRenderer implements BlockEntityRenderer<FlowMonitorBlock
                       final LineStyle style) {
         final Quad previous = quads.isEmpty() ? null : quads.getLast();
         final float z = previous == null ? LAYER_DEPTH : previous.z() + (previous.color() == color ? 0 : LAYER_DEPTH);
+        final double half = thickness / 2.0;
         if (style == LineStyle.BLOCKY) {
             // Keep the final vertical step visible inside the last column of the panel
-            final float sx = Math.clamp((float) Math.round(x1), 0, GRAPH_WIDTH - thickness);
-            final float ex = Math.clamp((float) Math.round(x2), 0, GRAPH_WIDTH - thickness);
-            final float sy = Math.round(y1);
-            final float ey = Math.round(y2);
+            final float sx = Math.clamp((float) Math.round(x1 - half), 0, GRAPH_WIDTH - thickness);
+            final float ex = Math.clamp((float) Math.round(x2 - half), 0, GRAPH_WIDTH - thickness);
+            final float sy = Math.round(y1 - half);
+            final float ey = Math.round(y2 - half);
             quads.add(Quad.rectangle(Math.min(sx, ex), sy, Math.max(sx, ex) + thickness, sy + thickness, z, color, false));
             quads.add(Quad.rectangle(ex, Math.min(sy, ey), ex + thickness, Math.max(sy, ey) + thickness, z, color, true));
             return;
         }
         final double length = Math.hypot(x2 - x1, y2 - y1);
-        final double half = thickness / 2.0;
         if (length < 1.0e-6) {
             quads.add(Quad.rectangle((float) (x1 - half), (float) (y1 - half), (float) (x1 + half), (float) (y1 + half), z, color, false));
             return;

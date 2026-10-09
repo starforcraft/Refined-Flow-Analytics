@@ -5,7 +5,6 @@ import com.ultramega.refinedflowanalytics.registry.ModBlocks;
 import com.refinedmods.refinedstorage.common.content.BlockColorMap;
 
 import java.util.concurrent.CompletableFuture;
-
 import javax.annotation.Nullable;
 
 import net.minecraft.core.HolderLookup.Provider;

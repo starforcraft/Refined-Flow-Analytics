@@ -287,6 +287,13 @@ public class FlowSnapshotData extends SavedData {
         return new Samples(inflow, outflow);
     }
 
+    /** Sum the last completed ticks, including idle gaps, without constructing graph sample arrays */
+    public FlowTotals getRollingFlow(final Predicate<PlatformResourceKey> matches, final int windowTicks) {
+        final long inflow = this.tickHistory.sumRecent(windowTicks, key -> key.sign() > 0 && matches.test(key.resourceKey()));
+        final long outflow = -this.tickHistory.sumRecent(windowTicks, key -> key.sign() < 0 && matches.test(key.resourceKey()));
+        return new FlowTotals(inflow, outflow, Math.min(windowTicks, this.tickHistory.size()));
+    }
+
     private int intervalsPerFrame(final int desiredGranularity) {
         if (desiredGranularity == Granularity.TICK.getTickAmount()) {
             return 1;
@@ -335,5 +342,8 @@ public class FlowSnapshotData extends SavedData {
     }
 
     public record Samples(long[] inflow, long[] outflow) {
+    }
+
+    public record FlowTotals(long inflow, long outflow, int recordedTicks) {
     }
 }

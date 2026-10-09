@@ -27,6 +27,7 @@ public class SnapshotService {
                                final double y,
                                final double z,
                                final Entity entity,
+                               final long requestId,
                                final int granularity,
                                final boolean allStored) {
         if (!(entity instanceof Player player) || !(player.containerMenu instanceof FlowGridContainerMenu menu)) {
@@ -37,9 +38,9 @@ public class SnapshotService {
                 return;
             }
             final BlockEntity blockEntity = (world.getBlockEntity(BlockPos.containing(x, y, z)));
+            final Map<PlatformResourceKey, Map<Short, Long>> data = new HashMap<>();
             if (blockEntity instanceof FlowGridBlockEntity flowGrid && flowGrid.isActive()) {
                 final Map<ResourceChangeKey, Long> snapshotMap = flowGrid.getLastSnapshotAggregated(granularity);
-                final Map<PlatformResourceKey, Map<Short, Long>> data = new HashMap<>();
 
                 for (final ResourceChangeKey resourceChangeKey : snapshotMap.keySet()) {
                     final PlatformResourceKey resourceKey = resourceChangeKey.resourceKey();
@@ -55,8 +56,8 @@ public class SnapshotService {
                         data.putIfAbsent(resourceKey, Map.of((short) +1, 0L, (short) -1, 0L));
                     }
                 }
-                menu.sendMenuStateUpdate(player, new MenuState.Snapshot(granularity, allStored, data));
             }
+            menu.sendMenuStateUpdate(player, requestId, new MenuState.Snapshot(granularity, allStored, data));
         });
     }
 
@@ -65,6 +66,7 @@ public class SnapshotService {
                                        final double y,
                                        final double z,
                                        final Entity entity,
+                                       final long requestId,
                                        final PlatformResourceKey itemKey,
                                        final int granularity) {
         if (!(entity instanceof Player player) || !(player.containerMenu instanceof FlowGridContainerMenu menu)) {
@@ -75,10 +77,9 @@ public class SnapshotService {
                 return;
             }
             final BlockEntity blockEntity = (world.getBlockEntity(BlockPos.containing(x, y, z)));
-            if (blockEntity instanceof FlowGridBlockEntity flowGrid && flowGrid.isActive()) {
-                final Map<ResourceChangeGranularityKey, long[]> data = flowGrid.getDetailedSnapshot(itemKey, granularity);
-                menu.sendMenuStateUpdate(player, new MenuState.DetailedSnapshot(data));
-            }
+            final Map<ResourceChangeGranularityKey, long[]> data = blockEntity instanceof FlowGridBlockEntity flowGrid && flowGrid.isActive()
+                ? flowGrid.getDetailedSnapshot(itemKey, granularity) : Map.of();
+            menu.sendMenuStateUpdate(player, requestId, new MenuState.DetailedSnapshot(data));
         });
     }
 }

@@ -20,7 +20,7 @@
   "block.refinedflowanalytics.black_flow_detector": "Black Flow Detector",
   "item.refinedflowanalytics.flow_monitor.help": "Displays the selected resource's flow. Right click to configure.",
   "item.refinedflowanalytics.flow_detector.help": "Emits redstone based on the selected resource's flow. Right click to configure.",
-  "gui.refinedflowanalytics.flow_detector.filter_help": "Select the resource whose flow to detect. The amount is per second, in the same units as a normal Detector.",
+  "gui.refinedflowanalytics.flow_detector.filter_help": "Select the resource whose flow to detect. The amount covers the last second and updates every tick, in the same units as a normal Detector.",
   "gui.refinedflowanalytics.flow_detector.per_second": "/s",
   "gui.refinedflowanalytics.flow.detector_mode": "Mode",
   "gui.refinedflowanalytics.flow.detector_mode.under": "Emit when flow is below the amount",

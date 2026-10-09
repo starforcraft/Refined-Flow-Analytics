@@ -104,6 +104,12 @@ public class FlowGraph {
         }
     }
 
+    public void beginLoading(final PlatformResourceKey resource, final Granularity granularity) {
+        this.itemKey = resource;
+        this.granularity = granularity;
+        this.setLoading(true);
+    }
+
     public void setGraphPos(final int graphLeft, final int graphBottom) {
         this.left = graphLeft;
         this.bottom = graphBottom;
@@ -150,19 +156,20 @@ public class FlowGraph {
                          final int color,
                          final int thickness,
                          final LineStyle lineStyle) {
+        final double half = thickness / 2.0;
         if (x1 == x2 && y1 == y2) {
-            // Exact lines are centered on their coordinates, including isolated samples.
-            final double offset = lineStyle == LineStyle.EXACT ? thickness / 2.0 : 0;
-            final int x = (int) Math.round(x1 - offset);
-            final int y = (int) Math.round(y1 - offset);
+            // Both styles center isolated samples on the same coordinates.
+            final int x = (int) Math.round(x1 - half);
+            final int y = (int) Math.round(y1 - half);
             graphics.fill(x, y, x + thickness, y + thickness, color);
             return;
         }
         if (lineStyle == LineStyle.BLOCKY) {
-            final int startX = (int) Math.round(x1);
-            final int endX = (int) Math.round(x2);
-            final int startY = (int) Math.round(y1);
-            final int endY = (int) Math.round(y2);
+            // Round the stroke's edges, not its center, to match the exact/reference lines.
+            final int startX = (int) Math.round(x1 - half);
+            final int endX = (int) Math.round(x2 - half);
+            final int startY = (int) Math.round(y1 - half);
+            final int endY = (int) Math.round(y2 - half);
             // Hold the previous sample, then step vertically to the next one.
             graphics.fill(Math.min(startX, endX), startY, Math.max(startX, endX) + thickness, startY + thickness, color);
             graphics.fill(endX, Math.min(startY, endY), endX + thickness, Math.max(startY, endY) + thickness, color);

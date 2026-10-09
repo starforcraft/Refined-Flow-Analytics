@@ -35,7 +35,7 @@ public class ModScreens {
     public static void updateMenuState(final MenuStateUpdateMessage message) {
         if (Minecraft.getInstance().screen instanceof FlowGridScreen screen
             && screen.getMenu().containerId == message.containerId()) {
-            screen.updateMenuState(message.state());
+            screen.updateMenuState(message.requestId(), message.state());
         }
     }
 }

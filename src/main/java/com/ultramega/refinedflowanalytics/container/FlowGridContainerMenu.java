@@ -57,8 +57,8 @@ public class FlowGridContainerMenu extends AbstractContainerMenu {
         return ItemStack.EMPTY;
     }
 
-    public void sendMenuStateUpdate(final Player player, final MenuState state) {
-        final MenuStateUpdateMessage message = new MenuStateUpdateMessage(this.containerId, state);
+    public void sendMenuStateUpdate(final Player player, final long requestId, final MenuState state) {
+        final MenuStateUpdateMessage message = new MenuStateUpdateMessage(this.containerId, requestId, state);
         if (player instanceof ServerPlayer serverPlayer) {
             PacketDistributor.sendToPlayer(serverPlayer, message);
         } else if (player.level().isClientSide) {

@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 
 /**
  * A bounded timeline of fixed-duration intervals. Missing entries are zero-flow intervals.
@@ -97,6 +98,16 @@ final class SparseSnapshotHistory<K> {
             }
             consumer.accept(frames - 1 - (int) fromNewest, snapshot.deltas());
         }
+    }
+
+    long sumRecent(final int intervals, final Predicate<K> matches) {
+        final long[] total = {0};
+        this.forEachRecent(intervals, 1, (index, changes) -> changes.forEach((key, amount) -> {
+            if (matches.test(key)) {
+                total[0] += amount;
+            }
+        }));
+        return total[0];
     }
 
     void forEachStored(final BiConsumer<Integer, Map<K, Long>> consumer) {

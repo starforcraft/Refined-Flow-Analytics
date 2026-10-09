@@ -3,10 +3,10 @@ package com.ultramega.refinedflowanalytics.screen;
 import com.ultramega.refinedflowanalytics.block.entity.FlowMonitorBlockEntity;
 import com.ultramega.refinedflowanalytics.container.FlowMonitorContainerMenu;
 import com.ultramega.refinedflowanalytics.container.FlowMonitorProperties;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.FlowDirection;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.GranularitySideButtonWidget;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.LineStyleSideButtonWidget;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.MonitorDisplaySideButtonWidget;
-import com.ultramega.refinedflowanalytics.screen.sidebuttons.FlowDirection;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.MonitorItemVisibility;
 
 import com.refinedmods.refinedstorage.common.support.AbstractBaseScreen;

@@ -15,11 +15,12 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsIdentifier;
 
-public record MenuStateUpdateMessage(int containerId, MenuState state) implements CustomPacketPayload {
+public record MenuStateUpdateMessage(int containerId, long requestId, MenuState state) implements CustomPacketPayload {
     public static final Type<MenuStateUpdateMessage> TYPE = new Type<>(createFlowAnalyticsIdentifier("guistate_update"));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, MenuStateUpdateMessage> STREAM_CODEC = StreamCodec.composite(
         ByteBufCodecs.VAR_INT, MenuStateUpdateMessage::containerId,
+        ByteBufCodecs.VAR_LONG, MenuStateUpdateMessage::requestId,
         MenuState.STREAM_CODEC, MenuStateUpdateMessage::state,
         MenuStateUpdateMessage::new
     );
@@ -40,10 +41,10 @@ public record MenuStateUpdateMessage(int containerId, MenuState state) implement
             switch (message.state()) {
                 case MenuState.SnapshotRequest request -> SnapshotService.execute(
                     context.player().level(), menu.getX(), menu.getY(), menu.getZ(), context.player(),
-                    request.granularity(), request.allStored());
+                    message.requestId(), request.granularity(), request.allStored());
                 case MenuState.DetailedRequest request -> SnapshotService.executeDetailed(
                     context.player().level(), menu.getX(), menu.getY(), menu.getZ(), context.player(),
-                    request.resource(), request.granularity());
+                    message.requestId(), request.resource(), request.granularity());
                 default -> {
                 }
             }

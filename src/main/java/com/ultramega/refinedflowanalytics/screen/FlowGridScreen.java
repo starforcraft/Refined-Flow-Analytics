@@ -1,5 +1,6 @@
 package com.ultramega.refinedflowanalytics.screen;
 
+import com.ultramega.refinedflowanalytics.config.ClientConfig;
 import com.ultramega.refinedflowanalytics.container.FlowGridContainerMenu;
 import com.ultramega.refinedflowanalytics.data.FlowEstimate;
 import com.ultramega.refinedflowanalytics.network.MenuState;
@@ -44,7 +45,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
-import org.lwjgl.glfw.GLFW;
 
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsIdentifier;
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsTranslation;
@@ -76,6 +76,7 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
 
     private final List<FlowItemButton> itemButtons = new ArrayList<>();
     private final FlowGraph graph = new FlowGraph();
+    private final MenuRequestTracker requests = new MenuRequestTracker();
     private FlowEstimate cachedEstimate = FlowEstimate.EMPTY;
     @Nullable
     private PlatformResourceKey cachedEstimateResource;
@@ -89,18 +90,21 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
     private ScrollbarWidget scrollbar;
     private SearchFieldWidget searchField;
     private TickScheduler tickScheduler;
+    private int refreshIntervalTicks;
     private SearchIconWidget searchIcon;
 
     private Map<PlatformResourceKey, Map<Short, Long>> lastSnapshot = new HashMap<>();
 
-    private boolean hasDetailedGenerationData = false;
+    private boolean showingDetails = false;
+    @Nullable
+    private PlatformResourceKey selectedResource;
 
     public FlowGridScreen(final FlowGridContainerMenu container, final Inventory inventory, final Component text) {
         super(container, inventory, text);
         this.imageWidth = 256;
         this.imageHeight = 231;
 
-        this.tickScheduler = new TickScheduler(container.getGranularity().getTickAmount());
+        this.resetRefreshScheduler();
     }
 
     @Override
@@ -131,14 +135,21 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
     @Override
     protected void containerTick() {
         super.containerTick();
-        if (this.tickScheduler.shouldRun()) {
-            if (this.hasDetailedGenerationData) {
-                final PlatformResourceKey itemKey = this.graph.getItemKey();
-                this.requestDetailedGenerationStats(itemKey, false);
-            } else {
-                this.requestSimpleGenerationStats();
-            }
+        if (this.refreshIntervalTicks != this.getRefreshIntervalTicks()) {
+            this.resetRefreshScheduler();
         }
+        if (this.tickScheduler.shouldRun()) {
+            this.requestCurrentGenerationStats();
+        }
+    }
+
+    private int getRefreshIntervalTicks() {
+        return Math.max(ClientConfig.INSTANCE.getMinimumRefreshIntervalTicks(), this.getMenu().getGranularity().getTickAmount());
+    }
+
+    private void resetRefreshScheduler() {
+        this.refreshIntervalTicks = this.getRefreshIntervalTicks();
+        this.tickScheduler = new TickScheduler(this.refreshIntervalTicks);
     }
 
     private void renderDetailedGenerationStats(final GuiGraphics graphics, final int mouseX, final int mouseY) {
@@ -274,7 +285,7 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
                 itemY - 1,
                 rowWidth, ROW_HEIGHT,
                 itemKey, itemChange, granularity,
-                () -> this.requestDetailedGenerationStats(itemKey, true),
+                () -> this.openDetails(itemKey),
                 List.of(new ClientTextTooltip(resourceRendering.getDisplayName(itemKey).getVisualOrderText()))
             );
             this.itemButtons.add(button);
@@ -303,22 +314,42 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
         RenderSystem.disableBlend();
     }
 
-    private void requestDetailedGenerationStats(final PlatformResourceKey itemKey, final boolean manual) {
+    private void requestCurrentGenerationStats() {
         final Player player = this.getMenu().entity;
         if (player.containerMenu == this.getMenu()) {
-            if (manual) {
-                this.graph.setLoading(true);
+            final int granularity = this.getMenu().getGranularity().getTickAmount();
+            final MenuState state;
+            if (this.showingDetails) {
+                final PlatformResourceKey resource = this.selectedResource;
+                if (resource == null) {
+                    return;
+                }
+                state = new MenuState.DetailedRequest(resource, granularity);
+            } else {
+                state = new MenuState.SnapshotRequest(granularity, this.getMenu().getResourceView() == ResourceView.ALL_STORED);
             }
-            this.getMenu().sendMenuStateUpdate(player, new MenuState.DetailedRequest(itemKey, this.getMenu().getGranularity().getTickAmount()));
+            final long requestId = this.requests.tryStartRequest();
+            if (requestId == -1) {
+                return;
+            }
+            this.getMenu().sendMenuStateUpdate(player, requestId, state);
         }
     }
 
-    private void requestSimpleGenerationStats() {
-        final Player player = this.getMenu().entity;
-        if (player.containerMenu == this.getMenu()) {
-            this.getMenu().sendMenuStateUpdate(player, new MenuState.SnapshotRequest(
-                this.getMenu().getGranularity().getTickAmount(), this.getMenu().getResourceView() == ResourceView.ALL_STORED));
-        }
+    private void openDetails(final PlatformResourceKey resource) {
+        this.selectedResource = resource;
+        this.showingDetails = true;
+        this.graph.beginLoading(resource, this.getMenu().getGranularity());
+        this.requests.invalidate();
+        this.updateControlVisibility();
+        this.requestCurrentGenerationStats();
+    }
+
+    private void returnToList() {
+        this.showingDetails = false;
+        this.requests.invalidate();
+        this.updateControlVisibility();
+        this.requestCurrentGenerationStats();
     }
 
     private void onResourceViewChanged() {
@@ -327,27 +358,44 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
         if (this.scrollbar != null) {
             this.scrollbar.setOffset(0);
         }
-        this.requestSimpleGenerationStats();
+        this.requests.invalidate();
+        this.requestCurrentGenerationStats();
     }
 
     private void onGranularityChanged() {
-        this.tickScheduler = new TickScheduler(this.getMenu().getGranularity().getTickAmount());
-        if (this.hasDetailedGenerationData) {
-            this.requestDetailedGenerationStats(this.graph.getItemKey(), true);
+        this.resetRefreshScheduler();
+        this.requests.invalidate();
+        final PlatformResourceKey resource = this.selectedResource;
+        if (this.showingDetails && resource != null) {
+            this.graph.beginLoading(resource, this.getMenu().getGranularity());
         } else {
             this.lastSnapshot = new HashMap<>();
-            this.requestSimpleGenerationStats();
         }
+        this.requestCurrentGenerationStats();
     }
 
-    public void updateMenuState(final MenuState state) {
+    public void updateMenuState(final long requestId, final MenuState state) {
+        final MenuRequestTracker.Completion completion = this.requests.complete(requestId);
+        if (completion == MenuRequestTracker.Completion.IGNORED) {
+            return;
+        }
+        if (completion == MenuRequestTracker.Completion.OBSOLETE) {
+            // Navigation is coalesced while waiting; now fetch only the latest requested view
+            this.requestCurrentGenerationStats();
+            return;
+        }
         if (state instanceof MenuState.DetailedSnapshot(Map<ResourceChangeGranularityKey, long[]> data)) {
-            if (data.isEmpty() || data.keySet().stream().anyMatch(key -> key.granularity() != this.getMenu().getGranularity().getTickAmount())) {
+            final PlatformResourceKey resource = this.selectedResource;
+            if (!this.showingDetails || resource == null
+                || data.keySet().stream().anyMatch(key -> key.granularity() != this.getMenu().getGranularity().getTickAmount()
+                    || !key.resourceKey().equals(resource))) {
                 return;
             }
-            this.graph.setData(data, this.getMenu().getGranularity());
-            this.hasDetailedGenerationData = true;
+            final Map<ResourceChangeGranularityKey, long[]> graphData = data.isEmpty()
+                ? Map.of(new ResourceChangeGranularityKey(resource, (short) 0, this.getMenu().getGranularity().getTickAmount()), new long[]{0}) : data;
+            this.graph.setData(graphData, this.getMenu().getGranularity());
         } else if (state instanceof MenuState.Snapshot(int granularity, boolean allStored, Map<PlatformResourceKey, Map<Short, Long>> data)
+            && !this.showingDetails
             && granularity == this.getMenu().getGranularity().getTickAmount()
             && allStored == (this.getMenu().getResourceView() == ResourceView.ALL_STORED)) {
             this.lastSnapshot = data;
@@ -356,10 +404,10 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
 
     @Override
     public boolean mouseClicked(final double mouseX, final double mouseY, final int button) {
-        if (this.hasDetailedGenerationData) {
+        if (this.showingDetails) {
             // back button
             if (button == 3) {
-                this.hasDetailedGenerationData = false;
+                this.returnToList();
                 return true;
             }
             if (this.graph.mouseClicked(mouseX, mouseY, button)) {
@@ -368,7 +416,10 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
         } else {
             // forward button
             if (button == 4) {
-                this.hasDetailedGenerationData = !this.graph.isLoading();
+                final PlatformResourceKey resource = this.selectedResource;
+                if (resource != null) {
+                    this.openDetails(resource);
+                }
                 return true;
             }
             final FlowItemButton hoveredButton = this.findHoveredItemButton(mouseX, mouseY);
@@ -396,7 +447,7 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
         if (this.scrollbar != null && this.scrollbar.visible && this.scrollbar.mouseReleased(mx, my, button)) {
             return true;
         }
-        if (this.hasDetailedGenerationData) {
+        if (this.showingDetails) {
             if (this.graph.mouseReleased(mx, my, button)) {
                 return true;
             }
@@ -414,11 +465,11 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
 
     @Override
     public void onClose() {
-        if (this.hasDetailedGenerationData) {
-            this.hasDetailedGenerationData = false;
-            this.updateControlVisibility();
+        if (this.showingDetails) {
+            this.returnToList();
             return;
         }
+        this.requests.invalidate();
         super.onClose();
     }
 
@@ -436,7 +487,7 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
     }
 
     private boolean isHoveringOverArea(final double x, final double y) {
-        return !this.hasDetailedGenerationData && this.isHovering(7, 19, INNER_WIDTH + 1, INNER_HEIGHT + 1, x, y);
+        return !this.showingDetails && this.isHovering(7, 19, INNER_WIDTH + 1, INNER_HEIGHT + 1, x, y);
     }
 
     private String formatAmount(final PlatformResourceKey resourceKey, final long amount) {
@@ -496,7 +547,7 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
     }
 
     private void updateControlVisibility() {
-        final boolean showListControls = !this.hasDetailedGenerationData;
+        final boolean showListControls = !this.showingDetails;
         this.searchField.visible = showListControls;
         this.searchField.active = showListControls;
         if (!showListControls) {
@@ -511,14 +562,14 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
 
     @Override
     protected ResourceLocation getTexture() {
-        return this.hasDetailedGenerationData ? GRID_DETAIL : GRID;
+        return this.showingDetails ? GRID_DETAIL : GRID;
     }
 
     @Override
     protected void renderBg(final GuiGraphics graphics, final float partialTicks, final int mouseX, final int mouseY) {
         super.renderBg(graphics, partialTicks, mouseX, mouseY);
         this.graph.lineStyle = this.getMenu().getLineStyle();
-        if (this.hasDetailedGenerationData) {
+        if (this.showingDetails) {
             this.renderDetailedGenerationStats(graphics, mouseX, mouseY);
         } else {
             this.renderSimpleGenerationStats(graphics, mouseX, mouseY);
@@ -527,14 +578,14 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
 
     @Override
     protected void renderLabels(final GuiGraphics graphics, final int mouseX, final int mouseY) {
-        if (!this.hasDetailedGenerationData) {
+        if (!this.showingDetails) {
             graphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 4210752, false);
         }
     }
 
     @Override
     protected void renderTooltip(final GuiGraphics graphics, final int mouseX, final int mouseY) {
-        if (this.hasDetailedGenerationData) {
+        if (this.showingDetails) {
             this.graph.renderTooltip(graphics, mouseX, mouseY);
             final Component heading = createFlowAnalyticsTranslation("gui", "flow.estimates");
             if (!this.graph.isLoading() && this.isHovering(GRAPH_X + 160, GRAPH_BOTTOM + 25,

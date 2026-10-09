@@ -35,6 +35,7 @@ public final class FlowHistoryNetworkComponent implements NetworkComponent {
     private final Set<FlowHistoryNode> nodes = new HashSet<>();
     private final RootStorageListener listener = this::changed;
     private final Map<Query, FlowSnapshotData.Samples> queries = new HashMap<>();
+    private final Map<RollingQuery, FlowSnapshotData.FlowTotals> rollingQueries = new HashMap<>();
 
     @Nullable
     private FlowSnapshotData data;
@@ -77,6 +78,7 @@ public final class FlowHistoryNetworkComponent implements NetworkComponent {
         }
         this.nodes.clear();
         this.queries.clear();
+        this.rollingQueries.clear();
     }
 
     @Override
@@ -122,6 +124,20 @@ public final class FlowHistoryNetworkComponent implements NetworkComponent {
         return this.queries.computeIfAbsent(new Query(resource, fuzzy, granularity), key -> {
             final ResourceKey normalized = normalizer.apply(resource);
             return this.data.getSamples(candidate -> normalized.equals(normalizer.apply(candidate)), granularity, MONITOR_SAMPLES);
+        });
+    }
+
+    public FlowSnapshotData.FlowTotals getRollingFlow(final PlatformResourceKey resource,
+                                                      final boolean fuzzy,
+                                                      final UnaryOperator<ResourceKey> normalizer,
+                                                      final int windowTicks) {
+        this.resolveHistory();
+        if (this.data == null) {
+            return new FlowSnapshotData.FlowTotals(0, 0, 0);
+        }
+        return this.rollingQueries.computeIfAbsent(new RollingQuery(resource, fuzzy, windowTicks), key -> {
+            final ResourceKey normalized = normalizer.apply(resource);
+            return this.data.getRollingFlow(candidate -> normalized.equals(normalizer.apply(candidate)), windowTicks);
         });
     }
 
@@ -171,6 +187,7 @@ public final class FlowHistoryNetworkComponent implements NetworkComponent {
         this.nodes.forEach(node -> node.setHistoryId(resolvedId));
         this.resolve = false;
         this.queries.clear();
+        this.rollingQueries.clear();
         if (!this.listening) {
             this.network.getComponent(StorageNetworkComponent.class).addListener(this.listener);
             this.listening = true;
@@ -192,6 +209,8 @@ public final class FlowHistoryNetworkComponent implements NetworkComponent {
             if (this.data.tick()) {
                 this.queries.clear();
             }
+            // All detectors querying the same resource share one rolling sum per recorded tick
+            this.rollingQueries.clear();
         }
     }
 
@@ -204,5 +223,8 @@ public final class FlowHistoryNetworkComponent implements NetworkComponent {
     }
 
     private record Query(PlatformResourceKey resource, boolean fuzzy, int granularity) {
+    }
+
+    private record RollingQuery(PlatformResourceKey resource, boolean fuzzy, int windowTicks) {
     }
 }

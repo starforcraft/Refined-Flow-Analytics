@@ -2,9 +2,9 @@ package com.ultramega.refinedflowanalytics.container;
 
 import com.ultramega.refinedflowanalytics.block.entity.FlowMonitorBlockEntity;
 import com.ultramega.refinedflowanalytics.registry.ModMenus;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.FlowDirection;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.Granularity;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.LineStyle;
-import com.ultramega.refinedflowanalytics.screen.sidebuttons.FlowDirection;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.MonitorItemVisibility;
 
 import com.refinedmods.refinedstorage.common.api.support.resource.ResourceContainer;

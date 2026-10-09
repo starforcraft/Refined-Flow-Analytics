@@ -6,9 +6,9 @@ import com.ultramega.refinedflowanalytics.container.FlowMonitorProperties;
 import com.ultramega.refinedflowanalytics.data.FlowSnapshotData;
 import com.ultramega.refinedflowanalytics.network.FlowHistoryNetworkComponent;
 import com.ultramega.refinedflowanalytics.registry.ModBlockEntities;
+import com.ultramega.refinedflowanalytics.screen.sidebuttons.FlowDirection;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.Granularity;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.LineStyle;
-import com.ultramega.refinedflowanalytics.screen.sidebuttons.FlowDirection;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.MonitorItemVisibility;
 
 import com.refinedmods.refinedstorage.common.api.support.resource.PlatformResourceKey;

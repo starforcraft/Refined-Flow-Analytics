@@ -74,23 +74,23 @@ public class FlowDetectorBlockEntity extends AbstractBaseNetworkNodeContainerBlo
     }
 
     private boolean shouldEmitSignal() {
-        // Check current power as well as node activeness so losing energy always clears the output.
         if (!this.mainNetworkNode.isActive() || !this.calculateActive()) {
             return false;
         }
+
         final var resource = this.filter.getFilterContainer().getResource(0);
         final var history = this.mainNetworkNode.getHistoryComponent().orElse(null);
         if (resource == null || history == null) {
             return false;
         }
-        final var samples = history.getSamples(resource, this.isFuzzyMode(), this.filter.createNormalizer(), Granularity.SECOND.getTickAmount());
-        // The history is oldest-first. Never compare an unfinished second or the historical average.
-        final int last = samples.inflow().length - 1;
-        if (last < 0) {
+
+        final var flow = history.getRollingFlow(resource, this.isFuzzyMode(), this.filter.createNormalizer(), Granularity.SECOND.getTickAmount());
+        if (flow.recordedTicks() == 0) {
             return false;
         }
+
         final long threshold = resource.getResourceType().normalizeAmount(this.amount);
-        return this.flowDirection.matches(samples.inflow()[last], samples.outflow()[last], threshold, this.mode);
+        return this.flowDirection.matches(flow.inflow(), flow.outflow(), threshold, this.mode);
     }
 
     public void setAmount(final double amount) {

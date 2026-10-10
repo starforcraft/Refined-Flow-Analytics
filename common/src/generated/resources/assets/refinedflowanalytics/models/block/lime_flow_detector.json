@@ -1,3 +1,6 @@
 {
-  "parent": "refinedstorage:block/detector/lime"
+  "parent": "refinedstorage:block/detector/powered",
+  "textures": {
+    "torch": "refinedstorage:block/detector/cutouts/lime"
+  }
 }

@@ -8,11 +8,10 @@ import com.refinedmods.refinedstorage.common.content.BlockColorMap;
 import com.refinedmods.refinedstorage.common.support.BaseBlockItem;
 
 import java.util.function.Supplier;
-import javax.annotation.Nullable;
 
 import net.minecraft.world.item.DyeColor;
+import org.jspecify.annotations.Nullable;
 
-import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsIdentifier;
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsTranslation;
 import static java.util.Objects.requireNonNull;
 
@@ -25,14 +24,14 @@ public final class ModBlocks {
 
     private final BlockColorMap<FlowGridBlock, BaseBlockItem> flowGrid = new BlockColorMap<>(
         FlowGridBlock::new,
-        createFlowAnalyticsIdentifier("flow_grid"),
+        ContentIds.FLOW_GRID,
         createFlowAnalyticsTranslation("block", "flow_grid"),
         COLOR
     );
 
     private final BlockColorMap<FlowDetectorBlock, BaseBlockItem> flowDetector = new BlockColorMap<>(
         FlowDetectorBlock::new,
-        createFlowAnalyticsIdentifier("flow_detector"),
+        ContentIds.FLOW_DETECTOR,
         createFlowAnalyticsTranslation("block", "flow_detector"),
         DyeColor.LIGHT_BLUE
     );

@@ -2,7 +2,7 @@ package com.ultramega.refinedflowanalytics.screen.sidebuttons;
 
 import java.util.Locale;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsIdentifier;
 
@@ -14,7 +14,7 @@ public enum ResourceView {
         return current == CHANGED ? ALL_STORED : CHANGED;
     }
 
-    public ResourceLocation getSprite() {
+    public Identifier getSprite() {
         return createFlowAnalyticsIdentifier("widget/side_button/resource_view/" + this.toString().toLowerCase(Locale.ROOT));
     }
 }

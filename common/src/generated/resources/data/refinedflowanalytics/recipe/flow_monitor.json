@@ -2,15 +2,10 @@
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "ingredients": [
-    {
-      "item": "refinedstorage:storage_monitor"
-    },
-    {
-      "item": "refinedstorage:advanced_processor"
-    }
+    "refinedstorage:storage_monitor",
+    "refinedstorage:advanced_processor"
   ],
   "result": {
-    "count": 1,
     "id": "refinedflowanalytics:flow_monitor"
   }
 }

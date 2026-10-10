@@ -7,10 +7,6 @@ import com.ultramega.refinedflowanalytics.screen.sidebuttons.Granularity;
 import com.refinedmods.refinedstorage.common.api.support.resource.PlatformResourceKey;
 import com.refinedmods.refinedstorage.common.support.resource.ResourceCodecs;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -19,15 +15,15 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Predicate;
 
-import net.minecraft.core.HolderLookup;
+import com.mojang.serialization.Codec;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
 
-import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.MOD_ID;
+import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsIdentifier;
 
 public class FlowSnapshotData extends SavedData {
     private static final int FORMAT_VERSION = 3;
@@ -44,24 +40,24 @@ public class FlowSnapshotData extends SavedData {
     private long revision;
     private long tickRevision;
 
-    public static FlowSnapshotData load(final CompoundTag tag, final HolderLookup.Provider provider) {
+    public static FlowSnapshotData load(final CompoundTag tag) {
         final FlowSnapshotData data = new FlowSnapshotData();
-        final int version = tag.getInt("format_version");
+        final int version = tag.getIntOr("format_version", 0);
         if (version != FORMAT_VERSION) {
             throw new IllegalArgumentException("Unsupported flow history format: " + version);
         }
-        final ListTag snapshots = tag.getList("snapshots", Tag.TAG_COMPOUND);
-        final CompoundTag dictionary = tag.getCompound("items_map");
+        final ListTag snapshots = tag.getListOrEmpty("snapshots");
+        final CompoundTag dictionary = tag.getCompoundOrEmpty("items_map");
         final Map<Integer, Optional<PlatformResourceKey>> resolvedKeys = new HashMap<>();
-        final int intervals = tag.getInt("interval_count");
+        final int intervals = tag.getIntOr("interval_count", 0);
         if (intervals < 0) {
             throw new IllegalArgumentException("Negative flow history interval count");
         }
         final int retainedStart = Math.max(0, intervals - MAX_COLLECTION_SNAPSHOTS);
         int cursor = retainedStart;
         for (int i = 0; i < snapshots.size(); i++) {
-            final CompoundTag snapshot = snapshots.getCompound(i);
-            final int offset = snapshot.getInt("offset");
+            final CompoundTag snapshot = snapshots.getCompoundOrEmpty(i);
+            final int offset = snapshot.getIntOr("offset", 0);
             if (offset < retainedStart) {
                 continue;
             }
@@ -69,27 +65,27 @@ public class FlowSnapshotData extends SavedData {
                 throw new IllegalArgumentException("Invalid flow history snapshot offset: " + offset);
             }
             data.history.advanceEmpty(offset - cursor);
-            data.history.record(readDeltas(snapshot.getCompound("deltas"), dictionary, resolvedKeys));
+            data.history.record(readDeltas(snapshot.getCompoundOrEmpty("deltas"), dictionary, resolvedKeys));
             cursor = offset + 1;
         }
         data.history.advanceEmpty(intervals - cursor);
-        data.pending.putAll(readDeltas(tag.getCompound("pending"), dictionary, resolvedKeys));
-        data.pendingTicks = Math.clamp(tag.getInt("pending_ticks"), 0, DATA_GRANULARITY - 1);
-        final int tickCount = Math.clamp(tag.getInt("tick_count"), 0, MAX_SNAPSHOTS_FOR_CLIENTBOUND_PACKET);
-        final ListTag ticks = tag.getList("tick_snapshots", Tag.TAG_COMPOUND);
+        data.pending.putAll(readDeltas(tag.getCompoundOrEmpty("pending"), dictionary, resolvedKeys));
+        data.pendingTicks = Math.clamp(tag.getIntOr("pending_ticks", 0), 0, DATA_GRANULARITY - 1);
+        final int tickCount = Math.clamp(tag.getIntOr("tick_count", 0), 0, MAX_SNAPSHOTS_FOR_CLIENTBOUND_PACKET);
+        final ListTag ticks = tag.getListOrEmpty("tick_snapshots");
         int tickCursor = 0;
         for (int i = 0; i < ticks.size(); i++) {
-            final CompoundTag snapshot = ticks.getCompound(i);
-            final int offset = snapshot.getInt("offset");
+            final CompoundTag snapshot = ticks.getCompoundOrEmpty(i);
+            final int offset = snapshot.getIntOr("offset", 0);
             if (offset < tickCursor || offset >= tickCount) {
                 throw new IllegalArgumentException("Invalid tick history snapshot offset: " + offset);
             }
             data.tickHistory.advanceEmpty(offset - tickCursor);
-            data.tickHistory.record(readDeltas(snapshot.getCompound("deltas"), dictionary, resolvedKeys));
+            data.tickHistory.record(readDeltas(snapshot.getCompoundOrEmpty("deltas"), dictionary, resolvedKeys));
             tickCursor = offset + 1;
         }
         data.tickHistory.advanceEmpty(tickCount - tickCursor);
-        data.tickPending.putAll(readDeltas(tag.getCompound("tick_pending"), dictionary, resolvedKeys));
+        data.tickPending.putAll(readDeltas(tag.getCompoundOrEmpty("tick_pending"), dictionary, resolvedKeys));
         if (retainedStart > 0) {
             data.setDirty();
         }
@@ -100,8 +96,8 @@ public class FlowSnapshotData extends SavedData {
                                                          final CompoundTag dictionary,
                                                          final Map<Integer, Optional<PlatformResourceKey>> resolvedKeys) {
         final Map<ResourceChangeKey, Long> deltas = new HashMap<>();
-        for (final String signedId : snapshot.getAllKeys()) {
-            final long value = snapshot.getLong(signedId);
+        for (final String signedId : snapshot.keySet()) {
+            final long value = snapshot.getLongOr(signedId, 0);
             if (value == 0) {
                 continue;
             }
@@ -121,13 +117,14 @@ public class FlowSnapshotData extends SavedData {
     }
 
     public static FlowSnapshotData get(final ServerLevel level, final UUID networkId) {
-        final SavedData.Factory<FlowSnapshotData> factory = new SavedData.Factory<>(FlowSnapshotData::new, FlowSnapshotData::load, null);
-        final String name = MOD_ID + "_network_history/" + networkId;
-        return level.getServer().overworld().getDataStorage().computeIfAbsent(factory, name);
+        final Codec<FlowSnapshotData> codec = CompoundTag.CODEC.xmap(FlowSnapshotData::load, FlowSnapshotData::save);
+        final SavedDataType<FlowSnapshotData> type = new SavedDataType<>(
+            createFlowAnalyticsIdentifier("network_history/" + networkId), FlowSnapshotData::new, codec, null);
+        return level.getServer().overworld().getDataStorage().computeIfAbsent(type);
     }
 
-    @Override
-    public CompoundTag save(final CompoundTag tag, final HolderLookup.Provider provider) {
+    public CompoundTag save() {
+        final CompoundTag tag = new CompoundTag();
         final Map<PlatformResourceKey, Integer> resourceIds = new LinkedHashMap<>();
         final ListTag snapshots = new ListTag();
         this.history.forEachStored((offset, changes) -> {
@@ -176,19 +173,6 @@ public class FlowSnapshotData extends SavedData {
         tag.put("tick_snapshots", tickSnapshots);
         tag.put("tick_pending", tickPendingTag);
         return tag;
-    }
-
-    @Override
-    public void save(final File file, final HolderLookup.Provider provider) {
-        final Path dir = Path.of(file.getParent());
-        if (!Files.isDirectory(dir)) {
-            try {
-                Files.createDirectories(dir);
-            } catch (final IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        super.save(file, provider);
     }
 
     public void recordSnapshot(final Map<ResourceChangeKey, Long> deltaMap) {

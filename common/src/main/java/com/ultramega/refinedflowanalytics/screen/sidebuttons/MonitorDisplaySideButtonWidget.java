@@ -4,13 +4,13 @@ import com.refinedmods.refinedstorage.common.support.containermenu.ClientPropert
 
 import java.util.function.Function;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public final class MonitorDisplaySideButtonWidget<T extends Enum<T>> extends FlowSideButtonWidget<T> {
     public MonitorDisplaySideButtonWidget(final String translation,
                                           final ClientProperty<T> property,
                                           final T[] values,
-                                          final Function<T, ResourceLocation> sprite) {
+                                          final Function<T, Identifier> sprite) {
         super(translation, property::getValue, property::setValue,
             current -> values[(current.ordinal() + 1) % values.length],
             current -> values[(current.ordinal() + values.length - 1) % values.length], sprite);

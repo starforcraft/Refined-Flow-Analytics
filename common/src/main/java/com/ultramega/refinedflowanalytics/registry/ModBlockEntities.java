@@ -5,9 +5,9 @@ import com.ultramega.refinedflowanalytics.block.entity.FlowGridBlockEntity;
 import com.ultramega.refinedflowanalytics.block.entity.FlowMonitorBlockEntity;
 
 import java.util.function.Supplier;
-import javax.annotation.Nullable;
 
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import org.jspecify.annotations.Nullable;
 
 import static java.util.Objects.requireNonNull;
 

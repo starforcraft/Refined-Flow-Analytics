@@ -24,8 +24,6 @@ import com.refinedmods.refinedstorage.common.support.resource.ResourceContainerI
 import java.util.Optional;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.StreamEncoder;
@@ -33,6 +31,8 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsTranslation;
 
@@ -63,7 +63,7 @@ public class FlowDetectorBlockEntity extends AbstractBaseNetworkNodeContainerBlo
     @Override
     public void doWork() {
         super.doWork();
-        if (this.level == null || this.level.isClientSide) {
+        if (this.level == null || this.level.isClientSide()) {
             return;
         }
         final boolean powered = this.shouldEmitSignal();
@@ -127,33 +127,33 @@ public class FlowDetectorBlockEntity extends AbstractBaseNetworkNodeContainerBlo
     }
 
     @Override
-    public void writeConfiguration(final CompoundTag tag, final HolderLookup.Provider provider) {
-        super.writeConfiguration(tag, provider);
-        this.filter.save(tag, provider);
-        tag.putDouble(AMOUNT_TAG, this.amount);
-        tag.putString(MODE_TAG, this.mode.name());
-        tag.putString(DIRECTION_TAG, this.flowDirection.name());
+    public void writeConfiguration(final ValueOutput output) {
+        super.writeConfiguration(output);
+        this.filter.store(output);
+        output.putDouble(AMOUNT_TAG, this.amount);
+        output.putString(MODE_TAG, this.mode.name());
+        output.putString(DIRECTION_TAG, this.flowDirection.name());
     }
 
     @Override
-    public void readConfiguration(final CompoundTag tag, final HolderLookup.Provider provider) {
-        super.readConfiguration(tag, provider);
-        this.filter.load(tag, provider);
-        this.amount = Double.isFinite(tag.getDouble(AMOUNT_TAG)) ? tag.getDouble(AMOUNT_TAG) : 0;
-        this.mode = FlowMonitorProperties.read(tag.getString(MODE_TAG), DetectorMode.values(), DetectorMode.EQUAL);
-        this.flowDirection = FlowMonitorProperties.read(tag.getString(DIRECTION_TAG), FlowDirection.values(), FlowDirection.INFLOW);
+    public void readConfiguration(final ValueInput input) {
+        super.readConfiguration(input);
+        this.filter.read(input);
+        this.amount = Double.isFinite(input.getDoubleOr(AMOUNT_TAG, 0)) ? input.getDoubleOr(AMOUNT_TAG, 0) : 0;
+        this.mode = FlowMonitorProperties.read(input.getStringOr(MODE_TAG, ""), DetectorMode.values(), DetectorMode.EQUAL);
+        this.flowDirection = FlowMonitorProperties.read(input.getStringOr(DIRECTION_TAG, ""), FlowDirection.values(), FlowDirection.INFLOW);
     }
 
     @Override
-    public void saveAdditional(final CompoundTag tag, final HolderLookup.Provider provider) {
-        super.saveAdditional(tag, provider);
-        this.mainNetworkNode.saveHistoryId(tag);
+    public void saveAdditional(final ValueOutput output) {
+        super.saveAdditional(output);
+        this.mainNetworkNode.saveHistoryId(output);
     }
 
     @Override
-    public void loadAdditional(final CompoundTag tag, final HolderLookup.Provider provider) {
-        super.loadAdditional(tag, provider);
-        this.mainNetworkNode.loadHistoryId(tag);
+    public void loadAdditional(final ValueInput input) {
+        super.loadAdditional(input);
+        this.mainNetworkNode.loadHistoryId(input);
     }
 
     @Override

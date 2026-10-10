@@ -56,57 +56,57 @@ public class FlowGridContainerMenu extends AbstractContainerMenu {
         final MenuStateUpdateMessage message = new MenuStateUpdateMessage(this.containerId, requestId, state);
         if (player instanceof ServerPlayer serverPlayer) {
             com.refinedmods.refinedstorage.common.Platform.INSTANCE.sendPacketToClient(serverPlayer, message);
-        } else if (player.level().isClientSide) {
+        } else if (player.level().isClientSide()) {
             com.refinedmods.refinedstorage.common.Platform.INSTANCE.sendPacketToServer(message);
         }
     }
 
     public SortingDirection getSortingDirection() {
-        return this.world.isClientSide ? Platform.getClientConfig().getFlowGrid().getSortingDirection() : SortingDirection.DESCENDING;
+        return this.world.isClientSide() ? Platform.getClientConfig().getFlowGrid().getSortingDirection() : SortingDirection.DESCENDING;
     }
 
     public void setSortingDirection(final SortingDirection value) {
-        if (this.world.isClientSide) {
+        if (this.world.isClientSide()) {
             Platform.getClientConfig().getFlowGrid().setSortingDirection(value);
         }
     }
 
     public SortingType getSortingType() {
-        return this.world.isClientSide ? Platform.getClientConfig().getFlowGrid().getSortingType() : SortingType.QUANTITY;
+        return this.world.isClientSide() ? Platform.getClientConfig().getFlowGrid().getSortingType() : SortingType.QUANTITY;
     }
 
     public void setSortingType(final SortingType value) {
-        if (this.world.isClientSide) {
+        if (this.world.isClientSide()) {
             Platform.getClientConfig().getFlowGrid().setSortingType(value);
         }
     }
 
     public Granularity getGranularity() {
-        return this.world.isClientSide ? Platform.getClientConfig().getFlowGrid().getGranularity() : Granularity.MINUTE;
+        return this.world.isClientSide() ? Platform.getClientConfig().getFlowGrid().getGranularity() : Granularity.MINUTE;
     }
 
     public void setGranularity(final Granularity value) {
-        if (this.world.isClientSide) {
+        if (this.world.isClientSide()) {
             Platform.getClientConfig().getFlowGrid().setGranularity(value);
         }
     }
 
     public LineStyle getLineStyle() {
-        return this.world.isClientSide ? Platform.getClientConfig().getFlowGrid().getLineStyle() : LineStyle.BLOCKY;
+        return this.world.isClientSide() ? Platform.getClientConfig().getFlowGrid().getLineStyle() : LineStyle.BLOCKY;
     }
 
     public void setLineStyle(final LineStyle value) {
-        if (this.world.isClientSide) {
+        if (this.world.isClientSide()) {
             Platform.getClientConfig().getFlowGrid().setLineStyle(value);
         }
     }
 
     public ResourceView getResourceView() {
-        return this.world.isClientSide ? Platform.getClientConfig().getFlowGrid().getResourceView() : ResourceView.CHANGED;
+        return this.world.isClientSide() ? Platform.getClientConfig().getFlowGrid().getResourceView() : ResourceView.CHANGED;
     }
 
     public void setResourceView(final ResourceView value) {
-        if (this.world.isClientSide) {
+        if (this.world.isClientSide()) {
             Platform.getClientConfig().getFlowGrid().setResourceView(value);
         }
     }

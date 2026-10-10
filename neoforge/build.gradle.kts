@@ -32,9 +32,3 @@ dependencies {
     commonResources(project(path = ":common", configuration = "commonResources"))
     api("com.refinedmods.refinedstorage:refinedstorage-neoforge:$refinedstorageVersion")
 }
-
-neoForge {
-    runs.named("data") {
-        programArguments.addAll("--existing-mod", "refinedstorage")
-    }
-}

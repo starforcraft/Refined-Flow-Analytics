@@ -35,25 +35,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import javax.annotation.Nullable;
 
-import com.mojang.blaze3d.platform.Window;
-import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTextTooltip;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import org.jspecify.annotations.Nullable;
 
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsIdentifier;
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsTranslation;
 
 public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
-    private static final ResourceLocation GRID_DETAIL = createFlowAnalyticsIdentifier("textures/gui/flow_grid_detail.png");
-    private static final ResourceLocation GRID = createFlowAnalyticsIdentifier("textures/gui/flow_grid.png");
+    private static final Identifier GRID_DETAIL = createFlowAnalyticsIdentifier("textures/gui/flow_grid_detail.png");
+    private static final Identifier GRID = createFlowAnalyticsIdentifier("textures/gui/flow_grid.png");
 
     private static final int PRODUCTION_GREEN = 0xff00ff00;
     private static final int CONSUMPTION_RED = 0xffff0000;
@@ -107,9 +105,7 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
     private PlatformResourceKey selectedResource;
 
     public FlowGridScreen(final FlowGridContainerMenu container, final Inventory inventory, final Component text) {
-        super(container, inventory, text);
-        this.imageWidth = 256;
-        this.imageHeight = 231;
+        super(container, inventory, text, 256, 231);
 
         this.resetRefreshScheduler();
     }
@@ -162,14 +158,12 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
         this.tickScheduler = new TickScheduler(this.refreshIntervalTicks);
     }
 
-    private void renderDetailedGenerationStats(final GuiGraphics graphics, final int mouseX, final int mouseY) {
+    private void renderDetailedGenerationStats(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY) {
         final Granularity granularity = this.getMenu().getGranularity();
-        RenderSystem.defaultBlendFunc();
-        graphics.pose().pushPose();
-        graphics.pose().translate(0, 0, 200);
+        graphics.pose().pushMatrix();
 
         this.graph.renderItem(graphics, this.leftPos + GRAPH_X, this.topPos + ITEM_HEADER_Y);
-        graphics.drawString(this.font, this.graph.getItemName(), this.leftPos + 35, this.topPos + ITEM_NAME_Y, WHITE);
+        graphics.text(this.font, this.graph.getItemName(), this.leftPos + 35, this.topPos + ITEM_NAME_Y, WHITE);
 
         final int graphLeft = this.leftPos + GRAPH_X;
         final int graphBottom = this.topPos + GRAPH_BOTTOM;
@@ -178,8 +172,8 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
         this.graph.setGraphPos(graphLeft, graphBottom);
         if (this.graph.isLoading()) {
             final Component loadingText = createFlowAnalyticsTranslation("gui", "flow.loading");
-            graphics.drawCenteredString(this.font, loadingText, graphLeft + graphWidth / 2, graphBottom - graphHeight / 2 - this.font.lineHeight / 2, WHITE);
-            graphics.pose().popPose();
+            graphics.centeredText(this.font, loadingText, graphLeft + graphWidth / 2, graphBottom - graphHeight / 2 - this.font.lineHeight / 2, WHITE);
+            graphics.pose().popMatrix();
             return;
         }
 
@@ -189,29 +183,29 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
         final PlatformResourceKey itemKey = this.graph.getItemKey();
 
         final int productionRowShift = 2;
-        graphics.drawString(this.font,
+        graphics.text(this.font,
             createFlowAnalyticsTranslation("gui", "flow.inflow"),
             graphLeft + productionRowShift, graphBottom + TEXT_LINE_HEIGHT + 2, PRODUCTION_GREEN);
-        graphics.drawString(this.font,
+        graphics.text(this.font,
             createFlowAnalyticsTranslation("gui", "flow.maximum", this.formatAmount(itemKey, this.graph.getMaxProduction()) + granularity.perStr()),
             graphLeft + productionRowShift, graphBottom + 8 + TEXT_LINE_HEIGHT * 2, WHITE);
-        graphics.drawString(this.font,
+        graphics.text(this.font,
             createFlowAnalyticsTranslation("gui", "flow.minimum", this.formatAmount(itemKey, this.graph.getMinProduction()) + granularity.perStr()),
             graphLeft + productionRowShift, graphBottom + 8 + TEXT_LINE_HEIGHT * 3, WHITE);
 
         final int consumptionRowShift = 78;
-        graphics.drawString(this.font,
+        graphics.text(this.font,
             createFlowAnalyticsTranslation("gui", "flow.outflow"),
             graphLeft + consumptionRowShift, graphBottom + TEXT_LINE_HEIGHT + 2, CONSUMPTION_RED);
-        graphics.drawString(this.font,
+        graphics.text(this.font,
             createFlowAnalyticsTranslation("gui", "flow.maximum", this.formatAmount(itemKey, this.graph.getMaxConsumption()) + granularity.perStr()),
             graphLeft + consumptionRowShift, graphBottom + 8 + TEXT_LINE_HEIGHT * 2, WHITE);
-        graphics.drawString(this.font,
+        graphics.text(this.font,
             createFlowAnalyticsTranslation("gui", "flow.minimum", this.formatAmount(itemKey, this.graph.getMinConsumption()) + granularity.perStr()),
             graphLeft + consumptionRowShift, graphBottom + 8 + TEXT_LINE_HEIGHT * 3, WHITE);
 
         // Reference lines
-        graphics.drawString(this.font, createFlowAnalyticsTranslation("gui", "flow.average"),
+        graphics.text(this.font, createFlowAnalyticsTranslation("gui", "flow.average"),
             graphLeft + graphWidth + 8, graphBottom - graphHeight - 14, WHITE);
 
         final double incAvg = this.graph.getAvgProduction();
@@ -223,41 +217,38 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
         // Leave room for the zero label, even when one or both averages are zero.
         final int incLabelY = Math.clamp(incAvgY - 10, graphBottom - graphHeight, zeroY - 11);
         final int decLabelY = Math.clamp(decAvgY + 2, zeroY + 2, graphBottom - this.font.lineHeight);
-        graphics.drawString(this.font, "+" + this.formatAmount(itemKey, (long) incAvg) + granularity.perStr(),
+        graphics.text(this.font, "+" + this.formatAmount(itemKey, (long) incAvg) + granularity.perStr(),
             averageLabelX, incLabelY, PRODUCTION_GREEN);
-        graphics.drawString(this.font, "-" + this.formatAmount(itemKey, (long) decAvg) + granularity.perStr(),
+        graphics.text(this.font, "-" + this.formatAmount(itemKey, (long) decAvg) + granularity.perStr(),
             averageLabelX, decLabelY, CONSUMPTION_RED);
-        graphics.drawString(this.font, "0", averageLabelX, zeroY - 4, GRAY);
+        graphics.text(this.font, "0", averageLabelX, zeroY - 4, GRAY);
 
         // Estimates
         final int estimatesRowShift = 160;
-        graphics.drawString(this.font, createFlowAnalyticsTranslation("gui", "flow.estimates"),
+        graphics.text(this.font, createFlowAnalyticsTranslation("gui", "flow.estimates"),
             graphLeft + estimatesRowShift, graphBottom + 25, ESTIMATES_BLUE);
         final FlowEstimate estimate = this.graph.getEstimate();
         this.updateEstimateLabels(itemKey, estimate);
-        graphics.drawString(this.font, this.estimateLabels[0], graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 3, WHITE);
-        graphics.drawString(this.font, this.estimateLabels[1], graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 4, WHITE);
-        graphics.drawString(this.font, this.estimateLabels[2], graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 5, WHITE);
-        graphics.drawString(this.font, this.estimateLabels[3], graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 6, WHITE);
+        graphics.text(this.font, this.estimateLabels[0], graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 3, WHITE);
+        graphics.text(this.font, this.estimateLabels[1], graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 4, WHITE);
+        graphics.text(this.font, this.estimateLabels[2], graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 5, WHITE);
+        graphics.text(this.font, this.estimateLabels[3], graphLeft + estimatesRowShift, graphBottom + 5 + TEXT_LINE_HEIGHT * 6, WHITE);
 
         // Overall stats
         final long net = Arrays.stream(this.graph.getNetData()).sum();
-        graphics.drawString(this.font, createFlowAnalyticsTranslation("gui", "flow.total_stored", this.graph.getTotalStored()), graphLeft + productionRowShift,
+        graphics.text(this.font, createFlowAnalyticsTranslation("gui", "flow.total_stored", this.graph.getTotalStored()), graphLeft + productionRowShift,
             graphBottom + 4 + TEXT_LINE_HEIGHT * 5, WHITE);
-        graphics.drawString(this.font, createFlowAnalyticsTranslation("gui", "flow.net_timeframe", (net > 0 ? "+" : "") + this.formatAmount(itemKey, net)),
+        graphics.text(this.font, createFlowAnalyticsTranslation("gui", "flow.net_timeframe", (net > 0 ? "+" : "") + this.formatAmount(itemKey, net)),
             graphLeft + productionRowShift, graphBottom + 4 + TEXT_LINE_HEIGHT * 6, WHITE);
 
-        graphics.pose().popPose();
+        graphics.pose().popMatrix();
     }
 
-    private void renderSimpleGenerationStats(final GuiGraphics graphics, final int mouseX, final int mouseY) {
-        RenderSystem.setShaderColor(1, 1, 1, 1);
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
+    private void renderSimpleGenerationStats(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY) {
 
         this.innerLeft = this.leftPos + 8;
         this.innerTop = this.topPos + 20;
-        this.enableScissorFromGui(this.innerLeft - 1, this.innerTop - 1, INNER_WIDTH + 1, INNER_HEIGHT + 1);
+        graphics.enableScissor(this.innerLeft - 1, this.innerTop - 1, this.innerLeft + INNER_WIDTH, this.innerTop + INNER_HEIGHT);
 
         final FlowItemButton hoveredButton = this.findHoveredItemButton(mouseX, mouseY);
         for (final FlowItemButton button : this.itemButtons) {
@@ -270,8 +261,7 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
             hoveredButton.render(graphics, true);
         }
 
-        RenderSystem.disableScissor();
-        RenderSystem.disableBlend();
+        graphics.disableScissor();
     }
 
     private void rebuildItemButtonsIfNeeded() {
@@ -422,7 +412,10 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
     }
 
     @Override
-    public boolean mouseClicked(final double mouseX, final double mouseY, final int button) {
+    public boolean mouseClicked(final MouseButtonEvent event, final boolean doubleClick) {
+        final double mouseX = event.x();
+        final double mouseY = event.y();
+        final int button = event.button();
         if (!this.initialSnapshotReceived) {
             return false;
         }
@@ -451,10 +444,10 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
             }
         }
 
-        if (this.scrollbar != null && this.scrollbar.visible && this.scrollbar.mouseClicked(mouseX, mouseY, button)) {
+        if (this.scrollbar != null && this.scrollbar.visible && this.scrollbar.mouseClicked(event, doubleClick)) {
             return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
@@ -466,16 +459,17 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
     }
 
     @Override
-    public boolean mouseReleased(final double mx, final double my, final int button) {
-        if (this.scrollbar != null && this.scrollbar.visible && this.scrollbar.mouseReleased(mx, my, button)) {
+    public boolean mouseReleased(final MouseButtonEvent event) {
+        final int button = event.button();
+        if (this.scrollbar != null && this.scrollbar.visible && this.scrollbar.mouseReleased(event)) {
             return true;
         }
         if (this.showingDetails) {
-            if (this.graph.mouseReleased(mx, my, button)) {
+            if (this.graph.mouseReleased(event.x(), event.y(), button)) {
                 return true;
             }
         }
-        return super.mouseReleased(mx, my, button);
+        return super.mouseReleased(event);
     }
 
     @Override
@@ -550,28 +544,15 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
         return (amount < 0 ? "-" : amount > 0 ? "+" : "") + formatted + target.perStr();
     }
 
-    public void enableScissorFromGui(final int guiX, final int guiY, final int guiWidth, final int guiHeight) {
-        final Minecraft mc = Minecraft.getInstance();
-        final Window window = mc.getWindow();
-        final double scale = window.getGuiScale();
-
-        final int x = (int) (guiX * scale);
-        final int y = (int) (window.getHeight() - (guiY + guiHeight) * scale);
-        final int width = (int) (guiWidth * scale);
-        final int height = (int) (guiHeight * scale);
-
-        RenderSystem.enableScissor(x, y, width, height);
-    }
-
     @Override
-    public void render(final GuiGraphics graphics, final int mouseX, final int mouseY, final float partialTicks) {
+    public void extractRenderState(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float partialTicks) {
         if (!this.initialSnapshotReceived) {
             graphics.fill(0, 0, this.width, this.height, 0x88000000);
             return;
         }
         this.rebuildItemButtonsIfNeeded();
         this.updateControlVisibility();
-        super.render(graphics, mouseX, mouseY, partialTicks);
+        super.extractRenderState(graphics, mouseX, mouseY, partialTicks);
     }
 
     private void updateControlVisibility() {
@@ -589,16 +570,16 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
     }
 
     @Override
-    protected ResourceLocation getTexture() {
+    protected Identifier getTexture() {
         return this.showingDetails ? GRID_DETAIL : GRID;
     }
 
     @Override
-    protected void renderBg(final GuiGraphics graphics, final float partialTicks, final int mouseX, final int mouseY) {
+    public void extractBackground(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float partialTicks) {
         if (!this.initialSnapshotReceived) {
             return;
         }
-        super.renderBg(graphics, partialTicks, mouseX, mouseY);
+        super.extractBackground(graphics, mouseX, mouseY, partialTicks);
         this.graph.lineStyle = this.getMenu().getLineStyle();
         if (this.showingDetails) {
             this.renderDetailedGenerationStats(graphics, mouseX, mouseY);
@@ -608,21 +589,21 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
     }
 
     @Override
-    protected void renderLabels(final GuiGraphics graphics, final int mouseX, final int mouseY) {
+    protected void extractLabels(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY) {
         if (!this.showingDetails) {
-            graphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 4210752, false);
+            graphics.text(this.font, this.title, this.titleLabelX, this.titleLabelY, 0xff404040, false);
         }
     }
 
     @Override
-    protected void renderTooltip(final GuiGraphics graphics, final int mouseX, final int mouseY) {
+    protected void extractTooltip(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY) {
         if (this.showingDetails) {
             this.graph.renderTooltip(graphics, mouseX, mouseY);
             final Component heading = createFlowAnalyticsTranslation("gui", "flow.estimates");
             if (!this.graph.isLoading() && this.isHovering(GRAPH_X + 160, GRAPH_BOTTOM + 25,
                 this.font.width(heading), this.font.lineHeight, mouseX, mouseY)) {
                 final FlowEstimate estimate = this.graph.getEstimate();
-                graphics.renderTooltip(this.font, estimate.available()
+                graphics.setTooltipForNextFrame(this.font, estimate.available()
                     ? createFlowAnalyticsTranslation("gui", "flow.estimates_window", estimate.observationWindow())
                     : createFlowAnalyticsTranslation("gui", "flow.estimates_empty"), mouseX, mouseY);
             }
@@ -632,7 +613,7 @@ public class FlowGridScreen extends AbstractBaseScreen<FlowGridContainerMenu> {
                 hoveredButton.renderTooltip(graphics, mouseX, mouseY);
             }
         }
-        super.renderTooltip(graphics, mouseX, mouseY);
+        super.extractTooltip(graphics, mouseX, mouseY);
     }
 
     private record ListLayout(String query, SortingType sortingType, SortingDirection sortingDirection,

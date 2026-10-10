@@ -6,7 +6,7 @@ import com.refinedmods.refinedstorage.api.network.impl.node.detector.DetectorMod
 
 import java.util.Locale;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsIdentifier;
 
@@ -21,7 +21,7 @@ public enum FlowDirection {
         this.color = color;
     }
 
-    public ResourceLocation getSprite() {
+    public Identifier getSprite() {
         return createFlowAnalyticsIdentifier("widget/side_button/flow_text/" + this.toString().toLowerCase(Locale.ROOT));
     }
 

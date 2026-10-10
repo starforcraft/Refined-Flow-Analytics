@@ -5,7 +5,6 @@ import com.ultramega.refinedflowanalytics.resource.ResourceChangeGranularityKey;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.Granularity;
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.LineStyle;
 
-import com.refinedmods.refinedstorage.common.Platform;
 import com.refinedmods.refinedstorage.common.api.RefinedStorageClientApi;
 import com.refinedmods.refinedstorage.common.api.support.resource.PlatformResourceKey;
 import com.refinedmods.refinedstorage.common.api.support.resource.ResourceRendering;
@@ -19,17 +18,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import javax.annotation.Nullable;
 
-import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTextTooltip;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
 import net.minecraft.network.chat.Component;
-import org.joml.Matrix4f;
 import org.joml.Vector2d;
 import org.joml.Vector2i;
+import org.jspecify.annotations.Nullable;
 
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsTranslation;
 
@@ -148,7 +146,7 @@ public class FlowGraph {
         this.loading = false;
     }
 
-    public void drawLine(final GuiGraphics graphics,
+    public void drawLine(final GuiGraphicsExtractor graphics,
                          final double x1,
                          final double y1,
                          final double x2,
@@ -174,23 +172,20 @@ public class FlowGraph {
             graphics.fill(Math.min(startX, endX), startY, Math.max(startX, endX) + thickness, startY + thickness, color);
             graphics.fill(endX, Math.min(startY, endY), endX + thickness, Math.max(startY, endY) + thickness, color);
         } else if (lineStyle == LineStyle.EXACT) {
-            final double ht = thickness / 2f;
-            final double rads = Math.atan2(y2 - y1, x2 - x1);
-            final double tx = Math.sin(rads) * ht;
-            final double ty = -Math.cos(rads) * ht;
-            final List<Vector2d> points = List.of(
-                new Vector2d((float) (x1 + tx), (float) (y1 + ty)),
-                new Vector2d((float) (x1 - tx), (float) (y1 - ty)),
-                new Vector2d((float) (x2 - tx), (float) (y2 - ty)),
-                new Vector2d((float) (x2 + tx), (float) (y2 + ty)));
-            final Matrix4f matrix4f = graphics.pose().last().pose();
-            final VertexConsumer vc = graphics.bufferSource().getBuffer(RenderType.gui());
-            points.forEach(p -> vc.addVertex(matrix4f, (float) p.x, (float) p.y, 0f).setColor(color));
-            graphics.flush();
+            final double length = Math.hypot(x2 - x1, y2 - y1);
+            final float angle = (float) Math.atan2(y2 - y1, x2 - x1);
+            final int width = Math.max(1, (int) Math.ceil(length));
+            graphics.pose().pushMatrix();
+            graphics.pose().translate((float) (x1 + Math.sin(angle) * half),
+                (float) (y1 - Math.cos(angle) * half));
+            graphics.pose().rotate(angle);
+            graphics.pose().scale((float) (length / width), 1);
+            graphics.fill(0, 0, width, thickness, color);
+            graphics.pose().popMatrix();
         }
     }
 
-    private LineDrawer guiLines(final GuiGraphics graphics) {
+    private LineDrawer guiLines(final GuiGraphicsExtractor graphics) {
         return (x1, y1, x2, y2, color, thickness, style) -> this.drawLine(graphics, x1, y1, x2, y2, color, thickness, style);
     }
 
@@ -202,7 +197,7 @@ public class FlowGraph {
         this.drawGraph(lines, this.getGuiXYArrayD(arr), thickness, color);
     }
 
-    public void drawGraphs(final GuiGraphics graphics) {
+    public void drawGraphs(final GuiGraphicsExtractor graphics) {
         this.drawGraphs(this.guiLines(graphics));
     }
 
@@ -326,7 +321,7 @@ public class FlowGraph {
         return this.getResourceRendering().getDisplayName(this.itemKey);
     }
 
-    public void renderItem(final GuiGraphics graphics, final int x, final int y) {
+    public void renderItem(final GuiGraphicsExtractor graphics, final int x, final int y) {
         this.getResourceRendering().render(this.itemKey, graphics, x, y);
     }
 
@@ -421,7 +416,7 @@ public class FlowGraph {
         return false;
     }
 
-    public void renderTooltip(final GuiGraphics graphics, final int mouseX, final int mouseY) {
+    public void renderTooltip(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY) {
         if (this.loading || this.pointsAmount == 0) {
             return;
         }
@@ -435,7 +430,7 @@ public class FlowGraph {
         // Highlight complete sample cells, including both endpoints when dragging in either direction.
         final int selectionX1 = indexFrom == 0 ? this.left : (int) Math.round(this.getGuiX(indexFrom - 0.5));
         final int selectionX2 = indexTo == this.pointsAmount ? this.left + WIDTH : (int) Math.round(this.getGuiX(indexTo - 0.5));
-        graphics.fill(selectionX1, this.bottom - HEIGHT, selectionX2, this.bottom, 250, 0x22ffffff);
+        graphics.fill(selectionX1, this.bottom - HEIGHT, selectionX2, this.bottom, 0x22ffffff);
 
         final LocalDateTime indexDate = this.granularity.subtractSamples(this.dataTimeStamp, this.pointsAmount - indexFrom);
         final LocalDateTime nextIndexDate = this.granularity.subtractSamples(this.dataTimeStamp, this.pointsAmount - indexTo);
@@ -457,7 +452,7 @@ public class FlowGraph {
             createFlowAnalyticsTranslation("gui", "flow.outflow_value", String.format("%,d", decvalue)).withColor(0xffff0000)));
         lines.add(new SmallTextClientTooltipComponent(
             createFlowAnalyticsTranslation("gui", "flow.netflow_value", String.format("%,d", incvalue - decvalue)).withColor(0xff66ddff)));
-        Platform.INSTANCE.renderTooltip(graphics, lines, mouseX, mouseY);
+        graphics.tooltip(Minecraft.getInstance().font, lines, mouseX, mouseY, DefaultTooltipPositioner.INSTANCE, null);
     }
 
     private Stream<PointPair> getPairStream(final List<Vector2d> points) {

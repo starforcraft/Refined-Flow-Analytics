@@ -14,13 +14,13 @@ import com.refinedmods.refinedstorage.common.content.ExtendedMenuTypeFactory;
 import com.refinedmods.refinedstorage.common.content.RegistryCallback;
 import com.refinedmods.refinedstorage.neoforge.api.RefinedStorageNeoForgeApi;
 
+import java.util.Set;
 import java.util.function.Supplier;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.PacketFlow;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;
@@ -66,7 +66,7 @@ public final class ModInitializer extends AbstractModInitializer {
         NeoForge.EVENT_BUS.addListener((final ServerTickEvent.Post event) -> RefinedFlowAnalyticsMod.tick());
         NeoForge.EVENT_BUS.addListener((final ServerStoppedEvent event) -> RefinedFlowAnalyticsMod.serverStopped());
 
-        if (FMLEnvironment.dist == Dist.CLIENT) {
+        if (FMLEnvironment.getDist() == Dist.CLIENT) {
             ClientModInitializer.register(eventBus);
         }
     }
@@ -83,7 +83,7 @@ public final class ModInitializer extends AbstractModInitializer {
             @Override
             public <T extends BlockEntity> BlockEntityType<T> create(final BlockEntityProvider<T> factory,
                                                                     final Block... allowedBlocks) {
-                return BlockEntityType.Builder.of(factory::create, allowedBlocks).build(null);
+                return new BlockEntityType<>(factory::create, Set.of(allowedBlocks));
             }
         });
         this.registerMenus(new ForgeRegistryCallback<>(menus), new ExtendedMenuTypeFactory() {
@@ -100,7 +100,7 @@ public final class ModInitializer extends AbstractModInitializer {
     }
 
     private void buildCreativeTabs(final BuildCreativeModeTabContentsEvent event) {
-        final ResourceLocation tab = event.getTabKey().location();
+        final Identifier tab = event.getTabKey().identifier();
         if (tab.equals(RefinedStorageApi.INSTANCE.getCreativeModeTabId())) {
             CreativeModeTabItems.appendNormal(event::accept);
         } else if (tab.equals(RefinedStorageApi.INSTANCE.getColoredCreativeModeTabId())) {
@@ -115,10 +115,8 @@ public final class ModInitializer extends AbstractModInitializer {
             MenuStateUpdateMessage.TYPE,
             MenuStateUpdateMessage.STREAM_CODEC,
             (message, context) -> {
-                if (context.flow() == PacketFlow.SERVERBOUND && context.player() instanceof ServerPlayer player) {
+                if (context.player() instanceof ServerPlayer player) {
                     message.handleServer(player);
-                } else if (context.flow() == PacketFlow.CLIENTBOUND) {
-                    ClientModInitializer.handleMenuState(message);
                 }
             }
         );
@@ -139,7 +137,7 @@ public final class ModInitializer extends AbstractModInitializer {
 
     private record ForgeRegistryCallback<T>(DeferredRegister<T> registry) implements RegistryCallback<T> {
         @Override
-        public <R extends T> Supplier<R> register(final ResourceLocation id, final Supplier<R> factory) {
+        public <R extends T> Supplier<R> register(final Identifier id, final Supplier<R> factory) {
             return this.registry.register(id.getPath(), factory);
         }
     }

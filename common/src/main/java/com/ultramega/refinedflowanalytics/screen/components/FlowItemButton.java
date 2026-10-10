@@ -2,23 +2,24 @@ package com.ultramega.refinedflowanalytics.screen.components;
 
 import com.ultramega.refinedflowanalytics.screen.sidebuttons.Granularity;
 
-import com.refinedmods.refinedstorage.common.Platform;
 import com.refinedmods.refinedstorage.common.api.RefinedStorageClientApi;
 import com.refinedmods.refinedstorage.common.api.support.resource.PlatformResourceKey;
 import com.refinedmods.refinedstorage.common.api.support.resource.ResourceRendering;
 
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nullable;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.WidgetSprites;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
+import org.jspecify.annotations.Nullable;
 
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsIdentifier;
 
@@ -31,7 +32,7 @@ public class FlowItemButton {
 
     public final Runnable onClick;
     @Nullable
-    private final ResourceLocation overlay;
+    private final Identifier overlay;
 
     private final int x;
     private final int y;
@@ -76,20 +77,20 @@ public class FlowItemButton {
         this.tooltipLines = lines;
     }
 
-    public void render(final GuiGraphics graphics, final boolean hovered) {
-        graphics.blitSprite(DEFAULT_SPRITES.get(true, hovered), this.x, this.y, this.width, this.height);
+    public void render(final GuiGraphicsExtractor graphics, final boolean hovered) {
+        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, DEFAULT_SPRITES.get(true, hovered), this.x, this.y, this.width, this.height);
         if (this.resourceContent == null) {
-            graphics.drawString(this.font, this.label, this.x + 5, this.y + 6, 0xFFFFFF);
+            graphics.text(this.font, this.label, this.x + 5, this.y + 6, 0xffffffff);
         }
         if (this.overlay != null) {
-            graphics.blitSprite(this.overlay, this.x, this.y, this.width, this.height);
+            graphics.blitSprite(RenderPipelines.GUI_TEXTURED, this.overlay, this.x, this.y, this.width, this.height);
         }
         if (this.resourceContent != null) {
             this.renderResourceContent(graphics, this.resourceContent);
         }
     }
 
-    private void renderResourceContent(final GuiGraphics graphics, final ResourceContent content) {
+    private void renderResourceContent(final GuiGraphicsExtractor graphics, final ResourceContent content) {
         final ResourceRendering resourceRendering = RefinedStorageClientApi.INSTANCE.getResourceRendering(content.resourceKey().getClass());
         final int left = this.x + 5;
         final int top = this.y + 5;
@@ -97,18 +98,18 @@ public class FlowItemButton {
 
         final long net = content.net();
         final String amount = (net < 0 ? "-" : "+") + resourceRendering.formatAmount(Math.abs(net), true);
-        graphics.drawString(this.font, amount + content.granularity().perStr(), left + 20, top + 5, net > 0 ? 0xff00ff00 : net < 0 ? 0xffff0000 : 0xffffffff);
+        graphics.text(this.font, amount + content.granularity().perStr(), left + 20, top + 5, net > 0 ? 0xff00ff00 : net < 0 ? 0xffff0000 : 0xffffffff);
 
         // TODO: decide if we want to show inflow/outflow too
-        /*graphics.drawString(font, "+" + ItemResourceRendering.INSTANCE.formatAmount(itemChange.get((short) +1), true) + granularity.perStr(),
+        /*graphics.text(font, "+" + ItemResourceRendering.INSTANCE.formatAmount(itemChange.get((short) +1), true) + granularity.perStr(),
             left + 20, top, PRODUCTION_GREEN);
-        graphics.drawString(font, "-" + ItemResourceRendering.INSTANCE.formatAmount(itemChange.get((short) -1), true) + granularity.perStr(),
+        graphics.text(font, "-" + ItemResourceRendering.INSTANCE.formatAmount(itemChange.get((short) -1), true) + granularity.perStr(),
             left + 20, top + 10, CONSUMPTION_RED);*/
     }
 
-    public void renderTooltip(final GuiGraphics graphics, final int mouseX, final int mouseY) {
+    public void renderTooltip(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY) {
         if (this.isMouseOver(mouseX, mouseY)) {
-            Platform.INSTANCE.renderTooltip(graphics, this.tooltipLines, mouseX, mouseY);
+            graphics.tooltip(this.font, this.tooltipLines, mouseX, mouseY, DefaultTooltipPositioner.INSTANCE, null);
         }
     }
 

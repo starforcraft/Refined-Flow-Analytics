@@ -2,21 +2,11 @@
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "A": {
-      "item": "refinedstorage:detector"
-    },
-    "E": {
-      "item": "refinedstorage:quartz_enriched_iron"
-    },
-    "G": {
-      "tag": "c:glass_blocks"
-    },
-    "M": {
-      "item": "refinedstorage:storage_monitor"
-    },
-    "P": {
-      "item": "refinedstorage:advanced_processor"
-    }
+    "A": "refinedstorage:detector",
+    "E": "refinedstorage:quartz_enriched_iron",
+    "G": "#c:glass_blocks",
+    "M": "refinedstorage:storage_monitor",
+    "P": "refinedstorage:advanced_processor"
   },
   "pattern": [
     "PAG",
@@ -24,7 +14,6 @@
     "PAG"
   ],
   "result": {
-    "count": 1,
     "id": "refinedflowanalytics:flow_grid"
   }
 }

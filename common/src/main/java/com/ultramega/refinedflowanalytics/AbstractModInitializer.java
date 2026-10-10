@@ -8,6 +8,7 @@ import com.ultramega.refinedflowanalytics.container.FlowDetectorContainerMenu;
 import com.ultramega.refinedflowanalytics.container.FlowGridContainerMenu;
 import com.ultramega.refinedflowanalytics.container.FlowMonitorContainerMenu;
 import com.ultramega.refinedflowanalytics.network.FlowHistoryNetworkComponent;
+import com.ultramega.refinedflowanalytics.registry.ContentIds;
 import com.ultramega.refinedflowanalytics.registry.ModBlockEntities;
 import com.ultramega.refinedflowanalytics.registry.ModBlocks;
 import com.ultramega.refinedflowanalytics.registry.ModItems;
@@ -26,38 +27,37 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 
-import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsIdentifier;
-
 public abstract class AbstractModInitializer {
     protected final void registerBlocks(final RegistryCallback<Block> callback) {
         ModBlocks.INSTANCE.getFlowGrid().registerBlocks(callback);
-        ModBlocks.setFlowMonitor(callback.register(createFlowAnalyticsIdentifier("flow_monitor"), FlowMonitorBlock::new));
+        ModBlocks.setFlowMonitor(callback.register(ContentIds.FLOW_MONITOR,
+            () -> new FlowMonitorBlock(ContentIds.FLOW_MONITOR)));
         ModBlocks.INSTANCE.getFlowDetector().registerBlocks(callback);
     }
 
     protected final void registerItems(final RegistryCallback<Item> callback) {
         ModBlocks.INSTANCE.getFlowGrid().registerItems(callback, ModItems.INSTANCE::addFlowGrid);
-        ModItems.setFlowMonitor(callback.register(createFlowAnalyticsIdentifier("flow_monitor"), () -> ModBlocks.getFlowMonitor().createBlockItem()));
+        ModItems.setFlowMonitor(callback.register(ContentIds.FLOW_MONITOR, () -> ModBlocks.getFlowMonitor().createBlockItem()));
         ModBlocks.INSTANCE.getFlowDetector().registerItems(callback, ModItems.INSTANCE::addFlowDetector);
     }
 
     protected final void registerBlockEntities(final RegistryCallback<BlockEntityType<?>> callback,
                                                final BlockEntityTypeFactory factory) {
-        ModBlockEntities.setFlowGrid(callback.register(createFlowAnalyticsIdentifier("flow_grid"),
+        ModBlockEntities.setFlowGrid(callback.register(ContentIds.FLOW_GRID,
             () -> factory.create(FlowGridBlockEntity::new, ModBlocks.INSTANCE.getFlowGrid().toArray())));
-        ModBlockEntities.setFlowMonitor(callback.register(createFlowAnalyticsIdentifier("flow_monitor"),
+        ModBlockEntities.setFlowMonitor(callback.register(ContentIds.FLOW_MONITOR,
             () -> factory.create(FlowMonitorBlockEntity::new, ModBlocks.getFlowMonitor())));
-        ModBlockEntities.setFlowDetector(callback.register(createFlowAnalyticsIdentifier("flow_detector"),
+        ModBlockEntities.setFlowDetector(callback.register(ContentIds.FLOW_DETECTOR,
             () -> factory.create(FlowDetectorBlockEntity::new, ModBlocks.INSTANCE.getFlowDetector().toArray())));
     }
 
     protected final void registerMenus(final RegistryCallback<MenuType<?>> callback,
                                        final ExtendedMenuTypeFactory factory) {
-        ModMenus.setFlowGridMenu(callback.register(createFlowAnalyticsIdentifier("flow_grid"),
+        ModMenus.setFlowGridMenu(callback.register(ContentIds.FLOW_GRID,
             () -> factory.create(FlowGridContainerMenu::new, BlockPos.STREAM_CODEC.cast())));
-        ModMenus.setFlowMonitorMenu(callback.register(createFlowAnalyticsIdentifier("flow_monitor"),
+        ModMenus.setFlowMonitorMenu(callback.register(ContentIds.FLOW_MONITOR,
             () -> factory.create(FlowMonitorContainerMenu::new, ResourceContainerData.STREAM_CODEC)));
-        ModMenus.setFlowDetectorMenu(callback.register(createFlowAnalyticsIdentifier("flow_detector"),
+        ModMenus.setFlowDetectorMenu(callback.register(ContentIds.FLOW_DETECTOR,
             () -> factory.create(FlowDetectorContainerMenu::new, SingleAmountData.STREAM_CODEC)));
     }
 

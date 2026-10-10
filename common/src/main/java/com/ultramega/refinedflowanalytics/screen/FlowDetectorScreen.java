@@ -12,7 +12,7 @@ import com.refinedmods.refinedstorage.common.support.widget.FuzzyModeSideButtonW
 
 import java.util.Locale;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
@@ -43,8 +43,8 @@ public class FlowDetectorScreen extends AbstractSingleAmountScreen<FlowDetectorC
     }
 
     @Override
-    protected void renderLabels(final GuiGraphics graphics, final int mouseX, final int mouseY) {
-        super.renderLabels(graphics, mouseX, mouseY);
-        graphics.drawString(this.font, createFlowAnalyticsTranslation("gui", "flow_detector.per_second"), 140, 51, 4210752, false);
+    protected void extractLabels(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY) {
+        super.extractLabels(graphics, mouseX, mouseY);
+        graphics.text(this.font, createFlowAnalyticsTranslation("gui", "flow_detector.per_second"), 140, 51, 0xff404040, false);
     }
 }

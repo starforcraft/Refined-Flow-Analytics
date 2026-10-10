@@ -1,10 +1,6 @@
 {
   "type": "refinedstorage:recoloring",
-  "dye": {
-    "tag": "c:dyes/pink"
-  },
-  "ingredient": {
-    "tag": "refinedflowanalytics:flow_grids"
-  },
+  "color": "pink",
+  "ingredient": "#refinedflowanalytics:flow_grids",
   "result": "refinedflowanalytics:pink_flow_grid"
 }

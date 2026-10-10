@@ -3,7 +3,7 @@ package com.ultramega.refinedflowanalytics.screen.sidebuttons;
 import java.util.Locale;
 import java.util.SequencedMap;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import static com.refinedmods.refinedstorage.common.util.IdentifierUtil.createIdentifier;
 
@@ -21,7 +21,7 @@ public enum SortingDirection {
         return this == ASCENDING ? map.reversed() : map;
     }
 
-    public ResourceLocation getSprite() {
+    public Identifier getSprite() {
         return createIdentifier("widget/side_button/grid/sorting_direction/" + this.toString().toLowerCase(Locale.ROOT));
     }
 }

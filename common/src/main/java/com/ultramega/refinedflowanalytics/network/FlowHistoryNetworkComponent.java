@@ -21,9 +21,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.UnaryOperator;
-import javax.annotation.Nullable;
 
 import net.minecraft.server.level.ServerLevel;
+import org.jspecify.annotations.Nullable;
 
 public final class FlowHistoryNetworkComponent implements NetworkComponent {
     public static final int MONITOR_SAMPLES = 200;

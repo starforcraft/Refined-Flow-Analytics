@@ -1,3 +1,6 @@
 {
-  "parent": "refinedstorage:block/detector/light_blue"
+  "parent": "refinedstorage:block/detector/powered",
+  "textures": {
+    "torch": "refinedstorage:block/detector/cutouts/light_blue"
+  }
 }

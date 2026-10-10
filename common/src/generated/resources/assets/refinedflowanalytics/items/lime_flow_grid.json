@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "refinedflowanalytics:block/flow_grid/lime"
+  }
+}

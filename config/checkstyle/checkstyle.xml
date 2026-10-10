@@ -84,7 +84,9 @@
         <module name="UncommentedMain"/>
         <module name="RedundantModifier"/>
         <module name="ConstantName"/>
-        <module name="AnonInnerLength"/>
+        <module name="AnonInnerLength">
+            <property name="max" value="30"/>
+        </module>
         <module name="MethodCount"/>
         <module name="MethodLength"/>
         <module name="OuterTypeNumber"/>

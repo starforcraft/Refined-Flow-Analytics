@@ -1,10 +1,6 @@
 {
   "type": "refinedstorage:recoloring",
-  "dye": {
-    "tag": "c:dyes/lime"
-  },
-  "ingredient": {
-    "tag": "refinedflowanalytics:flow_detectors"
-  },
+  "color": "lime",
+  "ingredient": "#refinedflowanalytics:flow_detectors",
   "result": "refinedflowanalytics:lime_flow_detector"
 }

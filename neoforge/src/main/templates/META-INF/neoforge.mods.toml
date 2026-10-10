@@ -17,20 +17,20 @@ config="refinedflowanalytics.mixins.json"
 [[dependencies.refinedflowanalytics]]
     modId="neoforge"
     type="required"
-    versionRange="[21.1.200,)"
+    versionRange="[26.1.2.78,)"
     ordering="AFTER"
     side="BOTH"
 
 [[dependencies.refinedflowanalytics]]
     modId="minecraft"
     type="required"
-    versionRange="[1.21.1]"
+    versionRange="[26.1.2]"
     ordering="AFTER"
     side="BOTH"
 
 [[dependencies.refinedflowanalytics]]
     modId="refinedstorage"
     type="required"
-    versionRange="[2.0.9,)"
+    versionRange="[3.2.1,)"
     ordering="NONE"
     side="BOTH"

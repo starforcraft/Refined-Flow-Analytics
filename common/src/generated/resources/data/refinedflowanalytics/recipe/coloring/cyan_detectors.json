@@ -1,10 +1,6 @@
 {
   "type": "refinedstorage:recoloring",
-  "dye": {
-    "tag": "c:dyes/cyan"
-  },
-  "ingredient": {
-    "tag": "refinedflowanalytics:flow_detectors"
-  },
+  "color": "cyan",
+  "ingredient": "#refinedflowanalytics:flow_detectors",
   "result": "refinedflowanalytics:cyan_flow_detector"
 }

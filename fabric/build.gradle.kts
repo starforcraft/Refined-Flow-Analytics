@@ -29,9 +29,9 @@ dependencies {
     compileOnly(project(":common"))
     commonJava(project(path = ":common", configuration = "commonJava"))
     commonResources(project(path = ":common", configuration = "commonResources"))
-    modApi("com.refinedmods.refinedstorage:refinedstorage-fabric:$refinedstorageVersion")
-    modImplementation(libs.cloth.config)
-    modCompileOnly(libs.modmenu)
+    api("com.refinedmods.refinedstorage:refinedstorage-fabric:$refinedstorageVersion")
+    implementation(libs.cloth.config)
+    compileOnly(libs.modmenu)
 }
 
 repositories {

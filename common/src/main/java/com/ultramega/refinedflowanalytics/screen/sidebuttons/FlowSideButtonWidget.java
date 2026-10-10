@@ -8,12 +8,13 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
-import javax.annotation.Nullable;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import org.jspecify.annotations.Nullable;
 
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsTranslation;
 
@@ -21,7 +22,7 @@ abstract class FlowSideButtonWidget<T extends Enum<T>> extends AbstractSideButto
     private final String translationKey;
     private final Supplier<T> getter;
     private final Consumer<T> setter;
-    private final Function<T, ResourceLocation> sprite;
+    private final Function<T, Identifier> sprite;
     @Nullable
     private final UnaryOperator<T> previous;
 
@@ -30,7 +31,7 @@ abstract class FlowSideButtonWidget<T extends Enum<T>> extends AbstractSideButto
                                    final Consumer<T> setter,
                                    final UnaryOperator<T> next,
                                    @Nullable final UnaryOperator<T> previous,
-                                   final Function<T, ResourceLocation> sprite) {
+                                   final Function<T, Identifier> sprite) {
         super(button -> setter.accept(next.apply(getter.get())));
         this.translationKey = "flow." + translationKey;
         this.getter = getter;
@@ -41,7 +42,7 @@ abstract class FlowSideButtonWidget<T extends Enum<T>> extends AbstractSideButto
     }
 
     @Override
-    protected ResourceLocation getSprite() {
+    protected Identifier getSprite() {
         return this.sprite.apply(this.getter.get());
     }
 
@@ -57,12 +58,12 @@ abstract class FlowSideButtonWidget<T extends Enum<T>> extends AbstractSideButto
     }
 
     @Override
-    public boolean mouseClicked(final double mouseX, final double mouseY, final int button) {
-        if (button == 1 && this.previous != null && this.active && this.visible && this.isMouseOver(mouseX, mouseY)) {
+    public boolean mouseClicked(final MouseButtonEvent event, final boolean doubleClick) {
+        if (event.button() == 1 && this.previous != null && this.active && this.visible && this.isMouseOver(event.x(), event.y())) {
             this.playDownSound(Minecraft.getInstance().getSoundManager());
             this.setter.accept(this.previous.apply(this.getter.get()));
             return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 }

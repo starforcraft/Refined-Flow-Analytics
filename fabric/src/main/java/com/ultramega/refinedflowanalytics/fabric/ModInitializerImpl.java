@@ -15,17 +15,15 @@ import com.refinedmods.refinedstorage.common.content.ExtendedMenuTypeFactory;
 import com.refinedmods.refinedstorage.fabric.api.RefinedStorageFabricApi;
 import com.refinedmods.refinedstorage.fabric.api.RefinedStoragePlugin;
 
-import java.util.Arrays;
-import java.util.HashSet;
-
 import me.shedaniel.autoconfig.AutoConfig;
 import me.shedaniel.autoconfig.serializer.Toml4jConfigSerializer;
+import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
+import net.fabricmc.fabric.api.menu.v1.ExtendedMenuType;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType;
+import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -48,24 +46,27 @@ public final class ModInitializerImpl extends AbstractModInitializer implements 
 
         this.registerBlocks(new DirectRegistryCallback<>(BuiltInRegistries.BLOCK));
         this.registerItems(new DirectRegistryCallback<>(BuiltInRegistries.ITEM));
-        this.registerBlockEntities(new DirectRegistryCallback<>(BuiltInRegistries.BLOCK_ENTITY_TYPE), new BlockEntityTypeFactory() {
-            @Override
-            public <T extends BlockEntity> BlockEntityType<T> create(final BlockEntityProvider<T> factory,
-                                                                    final Block... allowedBlocks) {
-                return new BlockEntityType<>(factory::create, new HashSet<>(Arrays.asList(allowedBlocks)), null);
+        this.registerBlockEntities(
+            new DirectRegistryCallback<>(BuiltInRegistries.BLOCK_ENTITY_TYPE),
+            new BlockEntityTypeFactory() {
+                @Override
+                public <T extends BlockEntity> BlockEntityType<T> create(final BlockEntityProvider<T> factory,
+                                                                         final Block... allowedBlocks) {
+                    return FabricBlockEntityTypeBuilder.create(factory::create, allowedBlocks).build();
+                }
             }
-        });
+        );
         this.registerMenus(new DirectRegistryCallback<>(BuiltInRegistries.MENU), new ExtendedMenuTypeFactory() {
             @Override
             public <T extends AbstractContainerMenu, D> MenuType<T> create(final MenuSupplier<T, D> supplier,
                                                                           final StreamCodec<RegistryFriendlyByteBuf, D> codec) {
-                return new ExtendedScreenHandlerType<>(supplier::create, codec);
+                return new ExtendedMenuType<>(supplier::create, codec);
             }
         });
 
-        ItemGroupEvents.modifyEntriesEvent(ResourceKey.create(Registries.CREATIVE_MODE_TAB, api.getCreativeModeTabId()))
+        CreativeModeTabEvents.modifyOutputEvent(ResourceKey.create(Registries.CREATIVE_MODE_TAB, api.getCreativeModeTabId()))
             .register(entries -> CreativeModeTabItems.appendNormal(entries::accept));
-        ItemGroupEvents.modifyEntriesEvent(ResourceKey.create(Registries.CREATIVE_MODE_TAB, api.getColoredCreativeModeTabId()))
+        CreativeModeTabEvents.modifyOutputEvent(ResourceKey.create(Registries.CREATIVE_MODE_TAB, api.getColoredCreativeModeTabId()))
             .register(entries -> CreativeModeTabItems.appendColored(entries::accept));
 
         this.registerNetworkComponents();
@@ -86,12 +87,12 @@ public final class ModInitializerImpl extends AbstractModInitializer implements 
     }
 
     private void registerNetworking() {
-        PayloadTypeRegistry.playC2S().register(
+        PayloadTypeRegistry.serverboundPlay().register(
             MenuStateUpdateMessage.TYPE,
             MenuStateUpdateMessage.STREAM_CODEC
         );
 
-        PayloadTypeRegistry.playS2C().register(
+        PayloadTypeRegistry.clientboundPlay().register(
             MenuStateUpdateMessage.TYPE,
             MenuStateUpdateMessage.STREAM_CODEC
         );

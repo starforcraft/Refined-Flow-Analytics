@@ -5,11 +5,13 @@ import com.refinedmods.refinedstorage.api.network.impl.node.SimpleNetworkNode;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
-import javax.annotation.Nullable;
 
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import org.jspecify.annotations.Nullable;
 
 public class FlowHistoryNode extends SimpleNetworkNode {
     private static final String HISTORY_ID = "FlowHistoryId";
@@ -49,13 +51,13 @@ public class FlowHistoryNode extends SimpleNetworkNode {
         return this.getNetwork() == null ? Optional.empty() : Optional.of(this.getNetwork().getComponent(FlowHistoryNetworkComponent.class));
     }
 
-    public void saveHistoryId(final CompoundTag tag) {
+    public void saveHistoryId(final ValueOutput output) {
         if (this.historyId != null) {
-            tag.putUUID(HISTORY_ID, this.historyId);
+            output.store(HISTORY_ID, UUIDUtil.CODEC, this.historyId);
         }
     }
 
-    public void loadHistoryId(final CompoundTag tag) {
-        this.historyId = tag.hasUUID(HISTORY_ID) ? tag.getUUID(HISTORY_ID) : null;
+    public void loadHistoryId(final ValueInput input) {
+        this.historyId = input.read(HISTORY_ID, UUIDUtil.CODEC).orElse(null);
     }
 }

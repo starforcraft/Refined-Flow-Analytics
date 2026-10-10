@@ -1,7 +1,4 @@
-@ParametersAreNonnullByDefault
-@FieldsAndMethodsAreNonnullByDefault
+@NullMarked
 package com.ultramega.refinedflowanalytics.block.entity;
 
-import com.refinedmods.refinedstorage.api.core.FieldsAndMethodsAreNonnullByDefault;
-
-import javax.annotation.ParametersAreNonnullByDefault;
+import org.jspecify.annotations.NullMarked;

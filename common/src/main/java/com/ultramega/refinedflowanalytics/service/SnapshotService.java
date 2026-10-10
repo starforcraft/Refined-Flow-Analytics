@@ -33,7 +33,7 @@ public class SnapshotService {
         if (!(entity instanceof ServerPlayer player) || !(player.containerMenu instanceof FlowGridContainerMenu menu)) {
             return;
         }
-        RefinedFlowAnalyticsMod.queueServerWork(player.server, () -> {
+        RefinedFlowAnalyticsMod.queueServerWork(player.level().getServer(), () -> {
             if (player.containerMenu != menu || !menu.stillValid(player)) {
                 return;
             }
@@ -72,7 +72,7 @@ public class SnapshotService {
         if (!(entity instanceof ServerPlayer player) || !(player.containerMenu instanceof FlowGridContainerMenu menu)) {
             return;
         }
-        RefinedFlowAnalyticsMod.queueServerWork(player.server, () -> {
+        RefinedFlowAnalyticsMod.queueServerWork(player.level().getServer(), () -> {
             if (player.containerMenu != menu || !menu.stillValid(player)) {
                 return;
             }

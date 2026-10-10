@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsIdentifier;
 
@@ -62,7 +62,7 @@ public enum Granularity {
         return "/" + this.symbol;
     }
 
-    public ResourceLocation getSprite() {
+    public Identifier getSprite() {
         return createFlowAnalyticsIdentifier(this.spritePath);
     }
 

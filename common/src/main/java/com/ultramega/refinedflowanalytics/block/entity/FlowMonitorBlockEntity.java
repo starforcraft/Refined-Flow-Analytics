@@ -22,8 +22,9 @@ import com.refinedmods.refinedstorage.common.util.PlatformUtil;
 
 import java.util.Arrays;
 import java.util.Objects;
-import javax.annotation.Nullable;
+import java.util.stream.LongStream;
 
+import com.mojang.serialization.Codec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -31,10 +32,15 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.StreamEncoder;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import org.jspecify.annotations.Nullable;
 
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsTranslation;
 
@@ -44,6 +50,8 @@ public class FlowMonitorBlockEntity extends AbstractBaseNetworkNodeContainerBloc
     public static final String FLOW_TEXT_TAG = "flow_text";
     public static final String GRANULARITY_TAG = "granularity";
     public static final String LINE_STYLE_TAG = "line_style";
+
+    private static final Codec<long[]> SAMPLES_CODEC = Codec.LONG_STREAM.xmap(LongStream::toArray, Arrays::stream);
 
     private static final String FLOW_IN_TAG = "flow_in";
     private static final String FLOW_OUT_TAG = "flow_out";
@@ -85,7 +93,7 @@ public class FlowMonitorBlockEntity extends AbstractBaseNetworkNodeContainerBloc
     }
 
     private void updateDisplay(final boolean force) {
-        if (this.level == null || this.level.isClientSide) {
+        if (this.level == null || this.level.isClientSide()) {
             return;
         }
 
@@ -195,28 +203,28 @@ public class FlowMonitorBlockEntity extends AbstractBaseNetworkNodeContainerBloc
     }
 
     @Override
-    public void writeConfiguration(final CompoundTag tag, final HolderLookup.Provider provider) {
-        super.writeConfiguration(tag, provider);
-        this.filter.save(tag, provider);
-        tag.putString(ITEM_VISIBILITY_TAG, this.itemVisibility.name());
-        tag.putString(FLOW_TEXT_TAG, this.flowText.name());
-        tag.putString(GRANULARITY_TAG, this.granularity.name());
-        tag.putString(LINE_STYLE_TAG, this.lineStyle.name());
+    public void writeConfiguration(final ValueOutput output) {
+        super.writeConfiguration(output);
+        this.filter.store(output);
+        output.putString(ITEM_VISIBILITY_TAG, this.itemVisibility.name());
+        output.putString(FLOW_TEXT_TAG, this.flowText.name());
+        output.putString(GRANULARITY_TAG, this.granularity.name());
+        output.putString(LINE_STYLE_TAG, this.lineStyle.name());
     }
 
     @Override
-    public void readConfiguration(final CompoundTag tag, final HolderLookup.Provider provider) {
+    public void readConfiguration(final ValueInput input) {
         final PlatformResourceKey previous = this.getConfiguredResource();
         final boolean fuzzy = this.isFuzzyMode();
         final boolean wasLoading = this.loadingData;
         this.loadingData = true;
         try {
-            super.readConfiguration(tag, provider);
-            this.filter.load(tag, provider);
-            this.itemVisibility = FlowMonitorProperties.read(tag.getString(ITEM_VISIBILITY_TAG), MonitorItemVisibility.values(), MonitorItemVisibility.SHOW);
-            this.flowText = FlowMonitorProperties.read(tag.getString(FLOW_TEXT_TAG), FlowDirection.values(), FlowDirection.NET);
-            this.granularity = FlowMonitorProperties.read(tag.getString(GRANULARITY_TAG), Granularity.values(), Granularity.SECOND);
-            this.lineStyle = FlowMonitorProperties.read(tag.getString(LINE_STYLE_TAG), LineStyle.values(), LineStyle.EXACT);
+            super.readConfiguration(input);
+            this.filter.read(input);
+            this.itemVisibility = FlowMonitorProperties.read(input.getStringOr(ITEM_VISIBILITY_TAG, ""), MonitorItemVisibility.values(), MonitorItemVisibility.SHOW);
+            this.flowText = FlowMonitorProperties.read(input.getStringOr(FLOW_TEXT_TAG, ""), FlowDirection.values(), FlowDirection.NET);
+            this.granularity = FlowMonitorProperties.read(input.getStringOr(GRANULARITY_TAG, ""), Granularity.values(), Granularity.SECOND);
+            this.lineStyle = FlowMonitorProperties.read(input.getStringOr(LINE_STYLE_TAG, ""), LineStyle.values(), LineStyle.EXACT);
         } finally {
             this.loadingData = wasLoading;
         }
@@ -228,30 +236,30 @@ public class FlowMonitorBlockEntity extends AbstractBaseNetworkNodeContainerBloc
     }
 
     @Override
-    public void saveAdditional(final CompoundTag tag, final HolderLookup.Provider provider) {
-        super.saveAdditional(tag, provider);
-        this.mainNetworkNode.saveHistoryId(tag);
+    public void saveAdditional(final ValueOutput output) {
+        super.saveAdditional(output);
+        this.mainNetworkNode.saveHistoryId(output);
     }
 
     @Override
-    public void loadAdditional(final CompoundTag tag, final HolderLookup.Provider provider) {
+    public void loadAdditional(final ValueInput input) {
         this.loadingData = true;
         try {
-            super.loadAdditional(tag, provider);
-            if (tag.getBoolean(FLOW_DISPLAY_TAG)) {
-                final long[] inflow = tag.getLongArray(FLOW_IN_TAG);
-                final long[] outflow = tag.getLongArray(FLOW_OUT_TAG);
+            super.loadAdditional(input);
+            if (input.getBooleanOr(FLOW_DISPLAY_TAG, false)) {
+                final long[] inflow = input.read(FLOW_IN_TAG, SAMPLES_CODEC).orElseGet(() -> new long[0]);
+                final long[] outflow = input.read(FLOW_OUT_TAG, SAMPLES_CODEC).orElseGet(() -> new long[0]);
                 final int length = Math.min(FlowHistoryNetworkComponent.MONITOR_SAMPLES, Math.min(inflow.length, outflow.length));
                 this.displayInflow = Arrays.copyOf(inflow, length);
                 this.displayOutflow = Arrays.copyOf(outflow, length);
             } else {
-                this.mainNetworkNode.loadHistoryId(tag);
+                this.mainNetworkNode.loadHistoryId(input);
                 this.displaySource = null;
                 this.sourceRevision = -1;
                 this.displayInflow = new long[0];
                 this.displayOutflow = new long[0];
             }
-            this.displayActive = tag.getBoolean(FLOW_ACTIVE_TAG);
+            this.displayActive = input.getBooleanOr(FLOW_ACTIVE_TAG, false);
             this.displayRevision++;
         } finally {
             this.loadingData = false;
@@ -260,8 +268,9 @@ public class FlowMonitorBlockEntity extends AbstractBaseNetworkNodeContainerBloc
 
     @Override
     public CompoundTag getUpdateTag(final HolderLookup.Provider provider) {
-        final CompoundTag tag = new CompoundTag();
-        this.writeConfiguration(tag, provider);
+        final TagValueOutput output = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, provider);
+        this.writeConfiguration(output);
+        final CompoundTag tag = output.buildResult();
         tag.putLongArray(FLOW_IN_TAG, this.displayInflow);
         tag.putLongArray(FLOW_OUT_TAG, this.displayOutflow);
         tag.putBoolean(FLOW_ACTIVE_TAG, this.displayActive);

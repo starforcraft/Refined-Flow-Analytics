@@ -1,10 +1,6 @@
 {
   "type": "refinedstorage:recoloring",
-  "dye": {
-    "tag": "c:dyes/magenta"
-  },
-  "ingredient": {
-    "tag": "refinedflowanalytics:flow_detectors"
-  },
+  "color": "magenta",
+  "ingredient": "#refinedflowanalytics:flow_detectors",
   "result": "refinedflowanalytics:magenta_flow_detector"
 }

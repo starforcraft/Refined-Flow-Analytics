@@ -1,10 +1,6 @@
 {
   "type": "refinedstorage:recoloring",
-  "dye": {
-    "tag": "c:dyes/cyan"
-  },
-  "ingredient": {
-    "tag": "refinedflowanalytics:flow_grids"
-  },
+  "color": "cyan",
+  "ingredient": "#refinedflowanalytics:flow_grids",
   "result": "refinedflowanalytics:cyan_flow_grid"
 }

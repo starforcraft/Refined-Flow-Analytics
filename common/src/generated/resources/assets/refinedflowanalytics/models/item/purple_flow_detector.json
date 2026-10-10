@@ -1,3 +1,6 @@
 {
-  "parent": "refinedflowanalytics:block/purple_flow_detector"
+  "parent": "refinedstorage:block/detector/powered",
+  "textures": {
+    "torch": "refinedstorage:block/detector/cutouts/purple"
+  }
 }

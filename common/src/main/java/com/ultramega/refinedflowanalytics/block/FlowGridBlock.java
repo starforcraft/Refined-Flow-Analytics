@@ -11,17 +11,17 @@ import com.refinedmods.refinedstorage.common.support.BaseBlockItem;
 import com.refinedmods.refinedstorage.common.support.BlockItemProvider;
 import com.refinedmods.refinedstorage.common.support.network.NetworkNodeBlockEntityTicker;
 
-import javax.annotation.Nullable;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import org.jspecify.annotations.Nullable;
 
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsTranslation;
 
@@ -29,8 +29,11 @@ public class FlowGridBlock extends AbstractGridBlock<FlowGridBlock, BaseBlockIte
     private static final Component HELP = createFlowAnalyticsTranslation("item", "flow_grid.help");
     private static final AbstractBlockEntityTicker<FlowGridBlockEntity> TICKER = new NetworkNodeBlockEntityTicker<>(ModBlockEntities::getFlowGrid, ACTIVE);
 
-    public FlowGridBlock(final DyeColor color, final MutableComponent name) {
-        super(name, color);
+    private final Identifier id;
+
+    public FlowGridBlock(final Identifier id, final DyeColor color, final MutableComponent name) {
+        super(id, color, name);
+        this.id = id;
     }
 
     @Override
@@ -51,6 +54,6 @@ public class FlowGridBlock extends AbstractGridBlock<FlowGridBlock, BaseBlockIte
 
     @Override
     public BaseBlockItem createBlockItem() {
-        return new BaseBlockItem(this, HELP);
+        return new BaseBlockItem(id, this, HELP);
     }
 }

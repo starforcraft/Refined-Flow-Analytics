@@ -16,6 +16,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlersEvent;
 
 public final class ClientModInitializer extends AbstractClientModInitializer {
     private ClientModInitializer() {
@@ -23,6 +24,7 @@ public final class ClientModInitializer extends AbstractClientModInitializer {
 
     public static void register(final IEventBus eventBus) {
         eventBus.addListener(ClientModInitializer::onRegisterMenuScreens);
+        eventBus.addListener(ClientModInitializer::registerClientPayloads);
         eventBus.addListener(ClientModInitializer::registerRenderers);
     }
 
@@ -37,6 +39,13 @@ public final class ClientModInitializer extends AbstractClientModInitializer {
                 e.register(type, factory::create);
             }
         });
+    }
+
+    private static void registerClientPayloads(final RegisterClientPayloadHandlersEvent event) {
+        event.register(
+            MenuStateUpdateMessage.TYPE,
+            (message, context) -> handleMenuState(message)
+        );
     }
 
     private static void registerRenderers(final EntityRenderersEvent.RegisterRenderers event) {

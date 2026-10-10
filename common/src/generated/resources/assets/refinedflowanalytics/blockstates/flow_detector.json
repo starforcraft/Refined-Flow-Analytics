@@ -1,105 +1,53 @@
 {
   "variants": {
-    "direction=down,powered=false,waterlogged=false": {
-      "model": "refinedflowanalytics:block/flow_detector_unpowered"
+    "direction=down,powered=false": {
+      "model": "refinedstorage:block/detector/unpowered"
     },
-    "direction=down,powered=false,waterlogged=true": {
-      "model": "refinedflowanalytics:block/flow_detector_unpowered"
-    },
-    "direction=down,powered=true,waterlogged=false": {
+    "direction=down,powered=true": {
       "model": "refinedflowanalytics:block/flow_detector"
     },
-    "direction=down,powered=true,waterlogged=true": {
-      "model": "refinedflowanalytics:block/flow_detector"
-    },
-    "direction=east,powered=false,waterlogged=false": {
-      "model": "refinedflowanalytics:block/flow_detector_unpowered",
+    "direction=east,powered=false": {
+      "model": "refinedstorage:block/detector/unpowered",
       "x": 90,
       "y": 270
     },
-    "direction=east,powered=false,waterlogged=true": {
-      "model": "refinedflowanalytics:block/flow_detector_unpowered",
-      "x": 90,
-      "y": 270
-    },
-    "direction=east,powered=true,waterlogged=false": {
+    "direction=east,powered=true": {
       "model": "refinedflowanalytics:block/flow_detector",
       "x": 90,
       "y": 270
     },
-    "direction=east,powered=true,waterlogged=true": {
-      "model": "refinedflowanalytics:block/flow_detector",
-      "x": 90,
-      "y": 270
-    },
-    "direction=north,powered=false,waterlogged=false": {
-      "model": "refinedflowanalytics:block/flow_detector_unpowered",
+    "direction=north,powered=false": {
+      "model": "refinedstorage:block/detector/unpowered",
       "x": 90,
       "y": 180
     },
-    "direction=north,powered=false,waterlogged=true": {
-      "model": "refinedflowanalytics:block/flow_detector_unpowered",
-      "x": 90,
-      "y": 180
-    },
-    "direction=north,powered=true,waterlogged=false": {
+    "direction=north,powered=true": {
       "model": "refinedflowanalytics:block/flow_detector",
       "x": 90,
       "y": 180
     },
-    "direction=north,powered=true,waterlogged=true": {
-      "model": "refinedflowanalytics:block/flow_detector",
-      "x": 90,
-      "y": 180
-    },
-    "direction=south,powered=false,waterlogged=false": {
-      "model": "refinedflowanalytics:block/flow_detector_unpowered",
+    "direction=south,powered=false": {
+      "model": "refinedstorage:block/detector/unpowered",
       "x": 90
     },
-    "direction=south,powered=false,waterlogged=true": {
-      "model": "refinedflowanalytics:block/flow_detector_unpowered",
-      "x": 90
-    },
-    "direction=south,powered=true,waterlogged=false": {
+    "direction=south,powered=true": {
       "model": "refinedflowanalytics:block/flow_detector",
       "x": 90
     },
-    "direction=south,powered=true,waterlogged=true": {
-      "model": "refinedflowanalytics:block/flow_detector",
-      "x": 90
-    },
-    "direction=up,powered=false,waterlogged=false": {
-      "model": "refinedflowanalytics:block/flow_detector_unpowered",
+    "direction=up,powered=false": {
+      "model": "refinedstorage:block/detector/unpowered",
       "x": 180
     },
-    "direction=up,powered=false,waterlogged=true": {
-      "model": "refinedflowanalytics:block/flow_detector_unpowered",
-      "x": 180
-    },
-    "direction=up,powered=true,waterlogged=false": {
+    "direction=up,powered=true": {
       "model": "refinedflowanalytics:block/flow_detector",
       "x": 180
     },
-    "direction=up,powered=true,waterlogged=true": {
-      "model": "refinedflowanalytics:block/flow_detector",
-      "x": 180
-    },
-    "direction=west,powered=false,waterlogged=false": {
-      "model": "refinedflowanalytics:block/flow_detector_unpowered",
+    "direction=west,powered=false": {
+      "model": "refinedstorage:block/detector/unpowered",
       "x": 90,
       "y": 90
     },
-    "direction=west,powered=false,waterlogged=true": {
-      "model": "refinedflowanalytics:block/flow_detector_unpowered",
-      "x": 90,
-      "y": 90
-    },
-    "direction=west,powered=true,waterlogged=false": {
-      "model": "refinedflowanalytics:block/flow_detector",
-      "x": 90,
-      "y": 90
-    },
-    "direction=west,powered=true,waterlogged=true": {
+    "direction=west,powered=true": {
       "model": "refinedflowanalytics:block/flow_detector",
       "x": 90,
       "y": 90

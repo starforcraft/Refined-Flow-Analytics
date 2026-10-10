@@ -3,7 +3,7 @@
     "direction=down_east": {
       "model": "refinedflowanalytics:block/flow_monitor",
       "x": 90,
-      "y": -90
+      "y": 270
     },
     "direction=down_north": {
       "model": "refinedflowanalytics:block/flow_monitor",
@@ -32,21 +32,21 @@
     },
     "direction=up_east": {
       "model": "refinedflowanalytics:block/flow_monitor",
-      "x": -90,
-      "y": -90
+      "x": 270,
+      "y": 270
     },
     "direction=up_north": {
       "model": "refinedflowanalytics:block/flow_monitor",
-      "x": -90,
+      "x": 270,
       "y": 180
     },
     "direction=up_south": {
       "model": "refinedflowanalytics:block/flow_monitor",
-      "x": -90
+      "x": 270
     },
     "direction=up_west": {
       "model": "refinedflowanalytics:block/flow_monitor",
-      "x": -90,
+      "x": 270,
       "y": 90
     },
     "direction=west": {

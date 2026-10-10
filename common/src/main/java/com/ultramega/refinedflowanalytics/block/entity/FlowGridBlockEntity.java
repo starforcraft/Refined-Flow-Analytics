@@ -35,6 +35,8 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsTranslation;
 
@@ -98,15 +100,15 @@ public class FlowGridBlockEntity extends AbstractBaseNetworkNodeContainerBlockEn
     }
 
     @Override
-    public void saveAdditional(final CompoundTag tag, final HolderLookup.Provider provider) {
-        super.saveAdditional(tag, provider);
-        this.mainNetworkNode.saveHistoryId(tag);
+    public void saveAdditional(final ValueOutput output) {
+        super.saveAdditional(output);
+        this.mainNetworkNode.saveHistoryId(output);
     }
 
     @Override
-    public void loadAdditional(final CompoundTag tag, final HolderLookup.Provider provider) {
-        super.loadAdditional(tag, provider);
-        this.mainNetworkNode.loadHistoryId(tag);
+    public void loadAdditional(final ValueInput input) {
+        super.loadAdditional(input);
+        this.mainNetworkNode.loadHistoryId(input);
     }
 
     @Override

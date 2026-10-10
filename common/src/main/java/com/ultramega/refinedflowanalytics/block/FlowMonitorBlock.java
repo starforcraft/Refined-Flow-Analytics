@@ -3,19 +3,18 @@ package com.ultramega.refinedflowanalytics.block;
 import com.ultramega.refinedflowanalytics.block.entity.FlowMonitorBlockEntity;
 import com.ultramega.refinedflowanalytics.registry.ModBlockEntities;
 
-import com.refinedmods.refinedstorage.common.content.BlockConstants;
+import com.refinedmods.refinedstorage.common.content.BlockProperties;
 import com.refinedmods.refinedstorage.common.support.AbstractBlockEntityTicker;
 import com.refinedmods.refinedstorage.common.support.AbstractDirectionalBlock;
 import com.refinedmods.refinedstorage.common.support.NetworkNodeBlockItem;
-import com.refinedmods.refinedstorage.common.support.direction.BiDirection;
-import com.refinedmods.refinedstorage.common.support.direction.BiDirectionType;
 import com.refinedmods.refinedstorage.common.support.direction.DirectionType;
+import com.refinedmods.refinedstorage.common.support.direction.OrientedDirection;
+import com.refinedmods.refinedstorage.common.support.direction.OrientedDirectionType;
 import com.refinedmods.refinedstorage.common.support.network.NetworkNodeBlockEntityTicker;
-
-import javax.annotation.Nullable;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.EntityBlock;
@@ -23,20 +22,24 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import org.jspecify.annotations.Nullable;
 
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsTranslation;
 
-public class FlowMonitorBlock extends AbstractDirectionalBlock<BiDirection> implements EntityBlock {
+public class FlowMonitorBlock extends AbstractDirectionalBlock<OrientedDirection> implements EntityBlock {
     private static final Component HELP = createFlowAnalyticsTranslation("item", "flow_monitor.help");
     private static final AbstractBlockEntityTicker<FlowMonitorBlockEntity> TICKER = new NetworkNodeBlockEntityTicker<>(ModBlockEntities::getFlowMonitor);
 
-    public FlowMonitorBlock() {
-        super(BlockConstants.PROPERTIES);
+    private final Identifier id;
+
+    public FlowMonitorBlock(final Identifier id) {
+        super(BlockProperties.stone(id));
+        this.id = id;
     }
 
     @Override
-    protected DirectionType<BiDirection> getDirectionType() {
-        return BiDirectionType.INSTANCE;
+    protected DirectionType<OrientedDirection> getDirectionType() {
+        return OrientedDirectionType.INSTANCE;
     }
 
     @Override
@@ -53,6 +56,6 @@ public class FlowMonitorBlock extends AbstractDirectionalBlock<BiDirection> impl
     }
 
     public BlockItem createBlockItem() {
-        return new NetworkNodeBlockItem(this, HELP);
+        return new NetworkNodeBlockItem(id, this, HELP);
     }
 }

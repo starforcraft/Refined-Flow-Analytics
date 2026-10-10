@@ -38,11 +38,11 @@
     "refinedflowanalytics.mixins.json"
   ],
   "depends": {
-    "fabricloader": ">=0.17.2",
+    "fabricloader": ">=0.19.3",
     "fabric-api": "*",
-    "minecraft": "~1.21.1",
-    "java": ">=21",
-    "refinedstorage": ">=2.0.9",
+    "minecraft": "26.1.2",
+    "java": ">=25",
+    "refinedstorage": ">=3.2.1",
     "cloth-config2": "*"
   },
   "suggests": {

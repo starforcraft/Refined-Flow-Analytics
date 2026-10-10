@@ -5,7 +5,7 @@ import com.ultramega.refinedflowanalytics.registry.ModBlockEntities;
 import com.ultramega.refinedflowanalytics.registry.ModBlocks;
 
 import com.refinedmods.refinedstorage.common.content.BlockColorMap;
-import com.refinedmods.refinedstorage.common.content.BlockConstants;
+import com.refinedmods.refinedstorage.common.content.BlockProperties;
 import com.refinedmods.refinedstorage.common.support.AbstractBlockEntityTicker;
 import com.refinedmods.refinedstorage.common.support.AbstractDirectionalBlock;
 import com.refinedmods.refinedstorage.common.support.BaseBlockItem;
@@ -16,12 +16,11 @@ import com.refinedmods.refinedstorage.common.support.direction.DefaultDirectionT
 import com.refinedmods.refinedstorage.common.support.direction.DirectionType;
 import com.refinedmods.refinedstorage.common.support.network.NetworkNodeBlockEntityTicker;
 
-import javax.annotation.Nullable;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
@@ -39,6 +38,7 @@ import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.jspecify.annotations.Nullable;
 
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.createFlowAnalyticsTranslation;
 
@@ -59,8 +59,11 @@ public class FlowDetectorBlock extends AbstractDirectionalBlock<Direction>
     private final DyeColor color;
     private final MutableComponent name;
 
-    public FlowDetectorBlock(final DyeColor color, final MutableComponent name) {
-        super(BlockConstants.PROPERTIES);
+    private final Identifier id;
+
+    public FlowDetectorBlock(final Identifier id, final DyeColor color, final MutableComponent name) {
+        super(BlockProperties.stone(id));
+        this.id = id;
         this.color = color;
         this.name = name;
     }
@@ -88,7 +91,7 @@ public class FlowDetectorBlock extends AbstractDirectionalBlock<Direction>
     }
 
     @Override
-    public boolean propagatesSkylightDown(final BlockState state, final BlockGetter blockGetter, final BlockPos pos) {
+    public boolean propagatesSkylightDown(final BlockState state) {
         return !state.getValue(BlockStateProperties.WATERLOGGED);
     }
 
@@ -158,6 +161,6 @@ public class FlowDetectorBlock extends AbstractDirectionalBlock<Direction>
 
     @Override
     public BaseBlockItem createBlockItem() {
-        return new NetworkNodeBlockItem(this, HELP);
+        return new NetworkNodeBlockItem(id, this, HELP);
     }
 }

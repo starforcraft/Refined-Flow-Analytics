@@ -131,21 +131,7 @@ final class SparseSnapshotHistory<K> {
                     throw new IndexOutOfBoundsException(index);
                 }
                 final long sequence = oldest + index;
-                int low = 0;
-                int high = retained.size() - 1;
-                while (low <= high) {
-                    final int middle = (low + high) >>> 1;
-                    final Snapshot<K> snapshot = retained.get(middle);
-                    if (snapshot.sequence() == sequence) {
-                        return snapshot.deltas();
-                    }
-                    if (snapshot.sequence() < sequence) {
-                        low = middle + 1;
-                    } else {
-                        high = middle - 1;
-                    }
-                }
-                return Map.of();
+                return getSnapshot(retained, sequence);
             }
 
             @Override
@@ -153,6 +139,24 @@ final class SparseSnapshotHistory<K> {
                 return size;
             }
         };
+    }
+
+    private static <K> Map<K, Long> getSnapshot(final List<Snapshot<K>> retained, final long sequence) {
+        int low = 0;
+        int high = retained.size() - 1;
+        while (low <= high) {
+            final int middle = (low + high) >>> 1;
+            final Snapshot<K> snapshot = retained.get(middle);
+            if (snapshot.sequence() == sequence) {
+                return snapshot.deltas();
+            }
+            if (snapshot.sequence() < sequence) {
+                low = middle + 1;
+            } else {
+                high = middle - 1;
+            }
+        }
+        return Map.of();
     }
 
     private record Snapshot<K>(long sequence, Map<K, Long> deltas) {

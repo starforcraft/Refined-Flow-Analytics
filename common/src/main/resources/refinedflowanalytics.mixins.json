@@ -4,7 +4,9 @@
   "package": "com.ultramega.refinedflowanalytics.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "CompositeStorageImplMixin"
+    "CompositeStorageImplMixin",
+    "DimensionDataStorageAccessor",
+    "MinecraftServerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

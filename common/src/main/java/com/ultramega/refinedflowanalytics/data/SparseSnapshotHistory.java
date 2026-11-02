@@ -2,12 +2,14 @@ package com.ultramega.refinedflowanalytics.data;
 
 import java.util.AbstractList;
 import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
+
+import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 
 /**
  * A bounded timeline of fixed-duration intervals. Missing entries are zero-flow intervals.
@@ -29,16 +31,21 @@ final class SparseSnapshotHistory<K> {
         if (deltas.isEmpty()) {
             return this.advanceEmpty(1);
         }
-        final Map<K, Long> nonzero = new HashMap<>();
+        final Map<K, Long> nonzero = new Object2LongOpenHashMap<>(deltas.size());
         deltas.forEach((key, value) -> {
             if (value != 0) {
                 nonzero.put(key, value);
             }
         });
+        return this.recordOwned(nonzero);
+    }
+
+    /** Takes ownership of a private map of nonzero changes so saves and forks can safely share it. */
+    boolean recordOwned(final Map<K, Long> nonzero) {
         if (nonzero.isEmpty()) {
             return this.advanceEmpty(1);
         }
-        this.snapshots.addLast(new Snapshot<>(this.nextSequence, Map.copyOf(nonzero)));
+        this.snapshots.addLast(new Snapshot<>(this.nextSequence, nonzero.size() == 1 ? Map.copyOf(nonzero) : Collections.unmodifiableMap(nonzero)));
         this.nextSequence++;
         this.intervalCount = (int) Math.min(this.capacity, (long) this.intervalCount + 1);
         this.removeExpired();
@@ -80,6 +87,13 @@ final class SparseSnapshotHistory<K> {
         return this.intervalCount;
     }
 
+    void copyTo(final SparseSnapshotHistory<K> target) {
+        target.snapshots.clear();
+        target.snapshots.addAll(this.snapshots);
+        target.nextSequence = this.nextSequence;
+        target.intervalCount = this.intervalCount;
+    }
+
     int frameCount(final int intervalsPerFrame, final int limit) {
         if (intervalsPerFrame <= 0 || limit <= 0) {
             throw new IllegalArgumentException("Frame size and limit must be positive");
@@ -111,6 +125,14 @@ final class SparseSnapshotHistory<K> {
     }
 
     void forEachStored(final BiConsumer<Integer, Map<K, Long>> consumer) {
+        this.forEachStoredChecked(consumer::accept);
+    }
+
+    int storedSize() {
+        return this.snapshots.size();
+    }
+
+    <E extends Exception> void forEachStoredChecked(final StoredConsumer<K, E> consumer) throws E {
         final long oldest = this.nextSequence - this.intervalCount;
         for (final Snapshot<K> snapshot : this.snapshots) {
             consumer.accept((int) (snapshot.sequence() - oldest), snapshot.deltas());
@@ -157,6 +179,11 @@ final class SparseSnapshotHistory<K> {
             }
         }
         return Map.of();
+    }
+
+    @FunctionalInterface
+    interface StoredConsumer<K, E extends Exception> {
+        void accept(int offset, Map<K, Long> deltas) throws E;
     }
 
     private record Snapshot<K>(long sequence, Map<K, Long> deltas) {

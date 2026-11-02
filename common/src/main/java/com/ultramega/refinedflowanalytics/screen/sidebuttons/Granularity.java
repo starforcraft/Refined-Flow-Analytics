@@ -18,7 +18,6 @@ public enum Granularity {
     private static final int TICKS_PER_SECOND = 20;
     private static final Granularity[] VALUES = values();
 
-    private final ChronoUnit chronoUnit;
     private final int tickAmount;
     private final String symbol;
     private final String spritePath;
@@ -28,7 +27,6 @@ public enum Granularity {
     }
 
     Granularity(final ChronoUnit chronoUnit, final int tickAmount, final String symbol) {
-        this.chronoUnit = chronoUnit;
         this.tickAmount = tickAmount;
         this.symbol = symbol;
         this.spritePath = "widget/side_button/granularity/" + this.toString().toLowerCase(Locale.ROOT);
@@ -40,14 +38,6 @@ public enum Granularity {
 
     public static Granularity prev(final Granularity current) {
         return VALUES[(current.ordinal() + VALUES.length - 1) % VALUES.length];
-    }
-
-    public static double getPerTick(final Granularity from, final double amount) {
-        return amount / from.tickAmount;
-    }
-
-    public ChronoUnit getChronoUnit() {
-        return this.chronoUnit;
     }
 
     public int getTickAmount() {
@@ -64,9 +54,5 @@ public enum Granularity {
 
     public ResourceLocation getSprite() {
         return createFlowAnalyticsIdentifier(this.spritePath);
-    }
-
-    public double convertFrom(final Granularity from, final double amount) {
-        return getPerTick(from, amount) * this.tickAmount;
     }
 }

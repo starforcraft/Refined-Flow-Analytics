@@ -80,6 +80,13 @@ final class SparseSnapshotHistory<K> {
         return this.intervalCount;
     }
 
+    void copyTo(final SparseSnapshotHistory<K> target) {
+        target.snapshots.clear();
+        target.snapshots.addAll(this.snapshots);
+        target.nextSequence = this.nextSequence;
+        target.intervalCount = this.intervalCount;
+    }
+
     int frameCount(final int intervalsPerFrame, final int limit) {
         if (intervalsPerFrame <= 0 || limit <= 0) {
             throw new IllegalArgumentException("Frame size and limit must be positive");
@@ -111,6 +118,14 @@ final class SparseSnapshotHistory<K> {
     }
 
     void forEachStored(final BiConsumer<Integer, Map<K, Long>> consumer) {
+        this.forEachStoredChecked(consumer::accept);
+    }
+
+    int storedSize() {
+        return this.snapshots.size();
+    }
+
+    <E extends Exception> void forEachStoredChecked(final StoredConsumer<K, E> consumer) throws E {
         final long oldest = this.nextSequence - this.intervalCount;
         for (final Snapshot<K> snapshot : this.snapshots) {
             consumer.accept((int) (snapshot.sequence() - oldest), snapshot.deltas());
@@ -157,6 +172,11 @@ final class SparseSnapshotHistory<K> {
             }
         }
         return Map.of();
+    }
+
+    @FunctionalInterface
+    interface StoredConsumer<K, E extends Exception> {
+        void accept(int offset, Map<K, Long> deltas) throws E;
     }
 
     private record Snapshot<K>(long sequence, Map<K, Long> deltas) {

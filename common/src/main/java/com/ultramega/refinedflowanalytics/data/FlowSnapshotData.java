@@ -7,10 +7,14 @@ import com.ultramega.refinedflowanalytics.screen.sidebuttons.Granularity;
 import com.refinedmods.refinedstorage.common.api.support.resource.PlatformResourceKey;
 import com.refinedmods.refinedstorage.common.support.resource.ResourceCodecs;
 
+import java.io.BufferedOutputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -18,7 +22,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Predicate;
+import java.util.zip.GZIPOutputStream;
 
+import com.mojang.logging.LogUtils;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -26,10 +32,12 @@ import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
+import org.slf4j.Logger;
 
 import static com.ultramega.refinedflowanalytics.util.RefinedFlowAnalyticsIdentifierUtil.MOD_ID;
 
 public class FlowSnapshotData extends SavedData {
+    private static final Logger LOGGER = LogUtils.getLogger();
     private static final int FORMAT_VERSION = 3;
     private static final int DATA_GRANULARITY = 20;
     // Seven days of active recording, measured in snapshots rather than ticks
@@ -40,6 +48,8 @@ public class FlowSnapshotData extends SavedData {
     private final SparseSnapshotHistory<ResourceChangeKey> tickHistory = new SparseSnapshotHistory<>(MAX_SNAPSHOTS_FOR_CLIENTBOUND_PACKET);
     private final Map<ResourceChangeKey, Long> pending = new HashMap<>();
     private final Map<ResourceChangeKey, Long> tickPending = new HashMap<>();
+    private final AsyncFlowSave writer = new AsyncFlowSave();
+    private volatile boolean saveFailed;
     private int pendingTicks;
     private long revision;
     private long tickRevision;
@@ -180,15 +190,52 @@ public class FlowSnapshotData extends SavedData {
 
     @Override
     public void save(final File file, final HolderLookup.Provider provider) {
-        final Path dir = Path.of(file.getParent());
-        if (!Files.isDirectory(dir)) {
-            try {
-                Files.createDirectories(dir);
-            } catch (final IOException e) {
-                throw new RuntimeException(e);
-            }
+        if (!this.isDirty()) {
+            return;
         }
-        super.save(file, provider);
+
+        final FlowSnapshotData snapshot = new FlowSnapshotData();
+        this.history.copyTo(snapshot.history);
+        this.tickHistory.copyTo(snapshot.tickHistory);
+        snapshot.pending.putAll(this.pending);
+        snapshot.tickPending.putAll(this.tickPending);
+        snapshot.pendingTicks = this.pendingTicks;
+        this.saveFailed = false;
+        this.setDirty(false);
+        this.writer.submit(() -> snapshot.writeSnapshot(file.toPath()), e -> {
+            // Do not clear the live dirty flag from the IO thread: ticks may have changed it since capture
+            this.saveFailed = true;
+            LOGGER.error("Could not save flow history to {}", file, e);
+        });
+    }
+
+    private void writeSnapshot(final Path file) throws IOException {
+        final Path target = file.toAbsolutePath();
+        Files.createDirectories(target.getParent());
+        final Path temporary = Files.createTempFile(target.getParent(), target.getFileName().toString(), ".tmp");
+        try {
+            try (var raw = Files.newOutputStream(temporary);
+                 var compressed = new GZIPOutputStream(raw, 64 * 1024);
+                 var output = new DataOutputStream(new BufferedOutputStream(compressed, 64 * 1024))) {
+                new FlowSnapshotNbtWriter(output).write(FORMAT_VERSION, this.history, this.tickHistory, this.pending, this.tickPending, this.pendingTicks);
+            }
+            try {
+                Files.move(temporary, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (final AtomicMoveNotSupportedException e) {
+                Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally {
+            Files.deleteIfExists(temporary);
+        }
+    }
+
+    @Override
+    public boolean isDirty() {
+        return super.isDirty() || this.saveFailed;
+    }
+
+    public static void flushPendingSaves() {
+        AsyncFlowSave.flush();
     }
 
     public void recordSnapshot(final Map<ResourceChangeKey, Long> deltaMap) {
@@ -245,8 +292,8 @@ public class FlowSnapshotData extends SavedData {
     }
 
     public void copyTo(final FlowSnapshotData target) {
-        copyHistory(this.history, target.history);
-        copyHistory(this.tickHistory, target.tickHistory);
+        this.history.copyTo(target.history);
+        this.tickHistory.copyTo(target.tickHistory);
         target.tickPending.clear();
         target.tickPending.putAll(this.tickPending);
         target.tickRevision++;
@@ -255,18 +302,6 @@ public class FlowSnapshotData extends SavedData {
         target.pendingTicks = this.pendingTicks;
         target.revision++;
         target.setDirty();
-    }
-
-    private static void copyHistory(final SparseSnapshotHistory<ResourceChangeKey> source,
-                                    final SparseSnapshotHistory<ResourceChangeKey> target) {
-        target.trimToLast(0);
-        final int[] cursor = {0};
-        source.forEachStored((offset, changes) -> {
-            target.advanceEmpty(offset - cursor[0]);
-            target.record(changes);
-            cursor[0] = offset + 1;
-        });
-        target.advanceEmpty(source.size() - cursor[0]);
     }
 
     public Samples getSamples(final Predicate<PlatformResourceKey> matches, final int granularity, final int limit) {

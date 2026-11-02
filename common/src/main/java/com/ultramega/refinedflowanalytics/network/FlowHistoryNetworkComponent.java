@@ -65,6 +65,9 @@ public final class FlowHistoryNetworkComponent implements NetworkComponent {
             if (this.nodes.isEmpty()) {
                 ACTIVE.remove(this);
                 this.stopListening();
+                if (this.historyId != null) {
+                    OWNERS.remove(this.historyId, this);
+                }
             }
         }
     }

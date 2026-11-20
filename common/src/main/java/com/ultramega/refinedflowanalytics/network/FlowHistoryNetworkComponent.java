@@ -65,6 +65,9 @@ public final class FlowHistoryNetworkComponent implements NetworkComponent {
             if (this.nodes.isEmpty()) {
                 ACTIVE.remove(this);
                 this.stopListening();
+                if (this.historyId != null) {
+                    OWNERS.remove(this.historyId, this);
+                }
             }
         }
     }
@@ -142,6 +145,10 @@ public final class FlowHistoryNetworkComponent implements NetworkComponent {
     }
 
     private void resolveHistory() {
+        if (this.data != null && this.data.pollLoad()) {
+            this.queries.clear();
+            this.rollingQueries.clear();
+        }
         if (!this.resolve || this.nodes.isEmpty()) {
             return;
         }
